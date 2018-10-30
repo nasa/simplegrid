@@ -36,7 +36,7 @@ def create_parser():
     return parser
 
 
-def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose):
+def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
     """Creates a rectangular lon/lat grid using simple great circle-based
     subdivisions. A normal spherical geoid is currently assumed.
 
@@ -125,13 +125,6 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose):
     compute_grid_xg[iub,jlb] = compute_grid_xg[iub,jub] = max_lon
     compute_grid_yg[ilb,jlb] = compute_grid_yg[iub,jlb] = min_lat
     compute_grid_yg[ilb,jub] = compute_grid_yg[iub,jub] = max_lat
-
-    # gjm dbg:
-    print('compute_grid after corner initialisation:')
-    print('compute_grid_xg:')
-    print(compute_grid_xg)
-    print('compute_grid_yg:')
-    print(compute_grid_yg)
 
     # 2b: x-direction edges:
 

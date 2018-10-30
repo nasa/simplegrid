@@ -48,7 +48,7 @@ def create_parser():
     return parser
 
 
-def regrid(mitgridfile,ni,nj,lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose):
+def regrid(mitgridfile,ni,nj,lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
     """Regrids a rectangular lon/lat region using simple great circle-based
     subdivision, preserving any corner grids that may already exist within the
     region. A normal spherical geoid is currently assumed.
@@ -679,7 +679,7 @@ def regrid(mitgridfile,ni,nj,lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbo
     cg_first_i  = 2*lon_subscale
     cg_last_i   = cg_first_i + (iub-ilb)*2*lon_subscale + inclusive
     cg_stride_i = 2
-    cg_first_j  = 2*lat_subscale
+    cg_first_j  = 2*lat_subscale-1
     cg_last_j   = cg_first_j + (jub-jlb)*2*lat_subscale + inclusive
     cg_stride_j = 2
 
@@ -689,7 +689,7 @@ def regrid(mitgridfile,ni,nj,lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbo
     j_cg = lambda j_n,lat_subscale : 2*lat_subscale - 1 + 2*j_n
 
     it = np.nditer(
-        [compute_grid_xg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_i],
+        [compute_grid_xg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j],
          compute_grid_yg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j]],
         flags=['multi_index'])
     while not it.finished:
