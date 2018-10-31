@@ -8,7 +8,7 @@ class TestRegrid(unittest.TestCase):
     def test_regrid_1(self):
         """ Tests 1x1 'remeshing' of a 1x1 cell from an llc 90 model tile.
         Results are compared against validated mitgrid file created using
-        simplegrid command-line call:
+        simpleregrid command-line call:
 
         simpleregrid \
             ./data/tile005.mitgrid \
@@ -38,7 +38,7 @@ class TestRegrid(unittest.TestCase):
     def test_regrid_2(self):
         """ Tests 30x20 remeshing of a 1x1 cell from an llc 90 model tile.
         Results are compared against validated mitgrid file created using
-        simplegrid command-line call:
+        simpleregrid command-line call:
 
         simpleregrid \
             ./data/tile005.mitgrid \
