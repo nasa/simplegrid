@@ -84,6 +84,9 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
     #
     # Based on user-selected discretization level, create a "compute grid" that
     # spans the expected range, plus a boundary "ring" one compute cell wide.
+    # (Note that this differs slightly from the logic in regrid.py where the
+    # boundary ring is the width of one tracer cell at the current resolution,
+    # which translates into 2*lat_subscale x 2*lon_subscale.)
     # Initializing grid values to NaN will allow us to compute grid data product
     # values using consistent indexing, while naturally producing undefined
     # values at the boundaries.
@@ -202,7 +205,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
         util.lonlat2cart(
             compute_grid_xg[ilb:incl(iub),jlb:incl(jub)],
             compute_grid_yg[ilb:incl(iub),jlb:incl(jub)])) \
-        * np.power(geod.a,2)
+            * np.power(geod.a,2)
 
     if verbose:
         print('compute_areas:')
@@ -270,7 +273,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
     # DXG tracer cell southern edge computed from compute_grid grid point
     # distances:
 
-    outgrid['DXG'] = np.zeros((lon_subscale,lat_subscale+1))
+    outgrid['DXG'] = np.empty((lon_subscale,lat_subscale+1))
     outgrid['DXG'][:,:] = np.nan    # error check, mostly
 
     # compute grid partitioning:
@@ -308,7 +311,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
     # DYG tracer cell western edge computed from compute_grid grid point
     # distances:
 
-    outgrid['DYG'] = np.zeros((lon_subscale+1,lat_subscale))
+    outgrid['DYG'] = np.empty((lon_subscale+1,lat_subscale))
     outgrid['DYG'][:,:] = np.nan    # error check, mostly
 
     # compute grid partitioning:
@@ -342,7 +345,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
 
     # RAC computed from subcell area sums in compute_areas:
 
-    outgrid['RAC'] = np.zeros((lon_subscale,lat_subscale))
+    outgrid['RAC'] = np.empty((lon_subscale,lat_subscale))
     outgrid['RAC'][:,:] = np.nan    # error check, mostly
 
     # compute_areas partitioning:
@@ -379,7 +382,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
 
     # DXC vorticity cell edge lengths computed from compute_grid points:
 
-    outgrid['DXC'] = np.zeros((lon_subscale+1,lat_subscale))
+    outgrid['DXC'] = np.empty((lon_subscale+1,lat_subscale))
     outgrid['DXC'][:,:] = np.nan
 
     # compute grid partitioning:
@@ -418,7 +421,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
 
     # DYC vorticity cell edge lengths computed from compute_grid points:
 
-    outgrid['DYC'] = np.zeros((lon_subscale,lat_subscale+1))
+    outgrid['DYC'] = np.empty((lon_subscale,lat_subscale+1))
     outgrid['DYC'][:,:] = np.nan
 
     # compute grid partitioning:
@@ -457,7 +460,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
 
     # RAZ vorticity cell areas computed from subcell areas in compute_areas:
 
-    outgrid['RAZ'] = np.zeros((lon_subscale+1,lat_subscale+1))
+    outgrid['RAZ'] = np.empty((lon_subscale+1,lat_subscale+1))
     outgrid['RAZ'][:,:] = np.nan
 
     # compute_areas partitioning:
@@ -494,7 +497,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
 
     # DXV U cell edge lengths computed from compute_grid points: 
 
-    outgrid['DXV'] = np.zeros((lon_subscale+1,lat_subscale+1))
+    outgrid['DXV'] = np.empty((lon_subscale+1,lat_subscale+1))
     outgrid['DXV'][:,:] = np.nan
 
     # compute grid partitioning:
@@ -533,7 +536,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
 
     # DYF U cell edge lengths computed from compute_grid points:
 
-    outgrid['DYF'] = np.zeros((lon_subscale,lat_subscale))
+    outgrid['DYF'] = np.empty((lon_subscale,lat_subscale))
     outgrid['DYF'][:,:] = np.nan
 
     # compute grid partitioning:
@@ -572,7 +575,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
     # RAW vertical face area of U cell computed from subcell areas in
     # compute_areas:
 
-    outgrid['RAW'] = np.zeros((lon_subscale+1,lat_subscale))
+    outgrid['RAW'] = np.empty((lon_subscale+1,lat_subscale))
     outgrid['RAW'][:,:] = np.nan
 
     # compute areas partitioning:
@@ -609,7 +612,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
 
     # DXF V cell edge lengths computed using compute_grid point distances:
 
-    outgrid['DXF'] = np.zeros((lon_subscale,lat_subscale))
+    outgrid['DXF'] = np.empty((lon_subscale,lat_subscale))
     outgrid['DXF'][:,:] = np.nan
 
     # compute grid partitioning:
@@ -647,7 +650,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
 
     # DYU V cell western edge length computed from compute_grid point distances:
 
-    outgrid['DYU'] = np.zeros((lon_subscale+1,lat_subscale+1))
+    outgrid['DYU'] = np.empty((lon_subscale+1,lat_subscale+1))
     outgrid['DYU'][:,:] = np.nan
 
     # compute grid partitioning:
@@ -687,7 +690,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
     # RAS vertical face area of V cell computed from subcell areas in
     # compute_areas:
 
-    outgrid['RAS'] = np.zeros((lon_subscale,lat_subscale+1))
+    outgrid['RAS'] = np.empty((lon_subscale,lat_subscale+1))
     outgrid['RAS'][:,:] = np.nan
 
     # compute areas partitioning:

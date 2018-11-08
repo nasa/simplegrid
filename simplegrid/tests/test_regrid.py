@@ -64,6 +64,34 @@ class TestRegrid(unittest.TestCase):
         for a,b in zip(newgrid,validated_grid):
             nptest.assert_array_equal(newgrid[a],validated_grid[b])
 
+    def test_regrid_3(self):
+        """ Tests 1x1 'remeshing' of a 1x1 corner cell from an llc 90 model
+        tile.  Results are compared against validated mitgrid file created using
+        simpleregrid command-line call:
+
+        simpleregrid \
+            ./data/tile005.mitgrid \
+            270 \
+            90 \
+            -128.0 \
+            67.5 \
+            -127.58893247 \
+            67.42868828 \
+            1 \ 
+            1 \ 
+            regrid_test_3.mitgrid
+        """
+
+        (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
+            './data/tile005.mitgrid', 270, 90, 
+            -128., 67.5, -127.58893247, 67.42868828,
+            1, 1)
+
+        validated_grid = sg.gridio.read_mitgridfile('./data/regrid_test_3.mitgrid',1,1)
+
+        # individual comparison of dictionary-stored numpy arrays:
+        for a,b in zip(newgrid,validated_grid):
+            nptest.assert_array_equal(newgrid[a],validated_grid[b])
 
 if __name__=='__main__':
     unittest.main()
