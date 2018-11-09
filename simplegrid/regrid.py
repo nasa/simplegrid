@@ -314,7 +314,6 @@ def regrid(mitgridfile,ni,nj,lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbo
     cg_first_j  = lat_subscale*2 + 1
     cg_last_j   = incl(cg_first_j + 2*((jub-jlb)*lat_subscale-1))
     cg_stride_j = 2
-    # dbg:
     outgrid['XC'] = compute_grid_xg[
         cg_first_i:cg_last_i:cg_stride_i,
         cg_first_j:cg_last_j:cg_stride_j]
@@ -396,7 +395,7 @@ def regrid(mitgridfile,ni,nj,lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbo
     # DYG tracer cell western edge computed from compute_grid grid point
     # distances:
 
-    outgrid['DYG'] = np.empty((lon_subscale+1,lat_subscale))
+    outgrid['DYG'] = np.empty(((iub-ilb)*lon_subscale+1,(jub-jlb)*lat_subscale))
     outgrid['DYG'][:,:] = np.nan    # error check, mostly
 
     # compute grid partitioning:
@@ -404,15 +403,16 @@ def regrid(mitgridfile,ni,nj,lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbo
     cg_last_i   = incl(cg_first_i + (iub-ilb)*2*lon_subscale)
     cg_stride_i = 2
     cg_first_j  = 2*lat_subscale
-    cg_last_j   = incl(cg_first_j + (jub-jlb)*2*(lat_subscale-1))
-    cg_stride_i = 2
+    cg_last_j   = incl(cg_first_j + ((jub-jlb)*lat_subscale-1)*2)
+    cg_stride_j = 2
 
     # (i_n,j_n) to (i_cg,j_cg) transformations are the same as for DXG above.
 
     it = np.nditer(
-        [compute_grid_xg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_i],
+        [compute_grid_xg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j],
          compute_grid_yg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j]],
         flags=['multi_index'])
+
     while not it.finished:
         # (don't need to check for NaNs since all values are within valid index
         # range)
