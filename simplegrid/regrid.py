@@ -3,6 +3,7 @@
 import argparse
 import math
 import numpy as np
+import os
 import pyproj
 from . import gridio
 from . import mitgridfilefields
@@ -16,57 +17,72 @@ def create_parser():
         description="""
             Regrid subdomain of an existing grid.""",
         epilog="""
-            Note that the ni and nj values, and their implied orientations, are
-            determined by the expected format of the file provided by
-            'filename'.""")
-    parser.add_argument('filename', help="""
+            Corner point information (lon1/lat1, lon2/lat2) can be either
+            literal northwest/southeast corners, or diagonal corners provided
+            simply for orientation purposes. Either way, the output grid will be
+            aligned such that 'northwest' is at min i, max j, and 'southeast' is
+            at max i, min j.""")
+    parser.add_argument('--mitgridfile', help="""
         mitgrid (path and) file name""")
-    parser.add_argument('ni', type=int, help="""
-        number of mitgridfile cells in the nominal east-west direction""")
-    parser.add_argument('nj', type=int, help="""
-        number of mitgridfile cells in the nominal north-south direction""")
-    parser.add_argument('lon1', type=float, help="""
-        longitude of first range-defining corner point""")
-    parser.add_argument('lat1', type=float, help="""
-        latitude of first range-defining corner point""")
-    parser.add_argument('lon2', type=float, help="""
-        longitude of second range-defining corner point""")
-    parser.add_argument('lat2', type=float, help="""
-        latitude of second range-defining corner point""")
-    parser.add_argument('lon_subscale', type=int, help="""
-        subscale factor to be applied to each cell in the nominal east-west
+    parser.add_argument('--xg_file', help="""
+        XG (path and) file input alternative to mitgridfile (csv if .csv
+        extension (one matrix row per line), double-precision column-ordered
+        binary otherwise; --yg_file must also be provided)""")
+    parser.add_argument('--yg_file', help="""
+        YG (path and) file input alternative to mitgridfile (see --xg_file
+        comments)""")
+    parser.add_argument('--ni', type=int, help="""
+        number of tracer points in model grid 'x' direction""")
+    parser.add_argument('--nj', type=int, help="""
+        number of tracer points in model grid 'y' direction""")
+    parser.add_argument('--lon1', type=float, help="""
+        longitude of northwest corner point""")
+    parser.add_argument('--lat1', type=float, help="""
+        latitude of northwest corner point""")
+    parser.add_argument('--lon2', type=float, help="""
+        longitude of southeast corner point""")
+    parser.add_argument('--lat2', type=float, help="""
+        latitude of southeast corner point""")
+    parser.add_argument('--lon_subscale', type=int, help="""
+        subscale factor to be applied to each cell in the model grid 'x'
         direction (e.g., '2' doubles the number of x-direction cells)
         (integer>=1)""")
-    parser.add_argument('lat_subscale', type=int, help="""
-        subscale factor to be applied to each cell in the nominal north-south
-        direction between lat1 and lat2 (see lon_subscale comments)
-        (integer>=1)""")
-    parser.add_argument('outfile', help="""
-        file to which regridded matrices will be written""")
+    parser.add_argument('--lat_subscale', type=int, help="""
+        subscale factor to be applied to each cell in the model grid 'y'
+        direction (see --lon_subscale comments) (integer>=1)""")
+    parser.add_argument('--outfile', help="""
+        file to which regridded matrices will be written (mitgridfile
+        format)""")
     parser.add_argument('-v','--verbose',action='store_true',help="""
         verbose output""")
     return parser
 
 
-def regrid(mitgridfile,ni,nj,lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
+def regrid( mitgridfile,xg_file,yg_file,ni,nj,
+        lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
     """Regrids a rectangular lon/lat region using simple great circle-based
     subdivision, preserving any corner grids that may already exist within the
     region. A normal spherical geoid is currently assumed.
 
     Args:
         mitgridfile (str): (path and) filename of data to be regridded.
-        ni (int): number of mitgridfile cells in the nominal "east-west" direction.
-        nj (int): number of mitgridfile cells in the nominal "north-south" direction.
-        lon1 (float): longitude of first range-defining corner point.
-        lat1 (float): latitude of first range-defining corner point.
-        lon2 (float): longitude of second range-defining corner point.
-        lat2 (float): latitude of second range-defining corner point.
-        lon_subscale (int): subscale factor to be applied in the nominal
-            east-west direction to each cell in the (lon1/lat1)-(lon2/lat2)
-            range (e.g., '2' doubles the number of x-direction cells; int>=1).
-        lat_subscale (int): subscale factor to be applied in the nominal
-            north-south direction to each cell in the (lon1/lat1)-(lon2/lat2)
-            range (e.g., '2' doubles the number of y-direction cells; int>=1).
+        xg_file (str): xg (path and) file input alternative to mitgridfile (csv
+            if .csv extension (one matrix row per line), double-precision
+            column-ordered binary otherwise; --yg_file must also be
+            provided).
+        yg_file (str): yg (path and) file input alternative to mitgridfile (see
+            --xg_file comments)
+        ni (int): number of tracer points in the model grid 'x' direction.
+        nj (int): number of tracer points in the model grid 'y' direction.
+        lon1 (float): longitude of northwest corner point.
+        lat1 (float): latitude of northwest corner point.
+        lon2 (float): longitude of southeast corner point.
+        lat2 (float): latitude of southeast corner point.
+        lon_subscale (int): subscale factor to be applied to each cell in the
+            model grid 'x' direction (e.g., '2' doubles the number of
+            x-direction cells; int>=1).
+        lat_subscale (int): subscale factor to be applied to each cell in the
+            model grid 'y' direction (see lon_subscale comments; int>=1).
         verbose (bool): True for diagnostic output, False otherwise.
 
     Returns:
@@ -75,20 +91,40 @@ def regrid(mitgridfile,ni,nj,lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbo
             names and ordering), and regridded ni, nj subdomain cell counts.
 
     Note:
-        Since cell counts are not stored in binary mitgridfiles, it is necessary
-        to use the regridded ni and nj cell counts when reading the grid data
-        generated by this routine.
-
+        Corner point information (lon1/lat1, lon2/lat2) can be either literal
+        northwest/southeast corners, or diagonal corners provided simply for
+        orientation purposes. Either way, the output grid will be aligned such
+        that 'northwest' is at min i, max j, and 'southeast' is at max i, min j.
     """
 
-    # read mitgridfile into dictionary of grid matrices:
-    mitgrid = gridio.read_mitgridfile( mitgridfile, ni, nj, verbose)
+    # read XG, YG data from source provided:
+    if mitgridfile:
+        mitgrid = gridio.read_mitgridfile( mitgridfile, ni, nj, verbose)
+    elif xg_file and yg_file:
+        mitgrid = {key:None for key in mitgridfilefields.names}
+        if os.path.splitext(xg_file)[1] == '.csv' and \
+           os.path.splitext(yg_file)[1] == '.csv':
+            # read .csv data, store in dictionary fields that read_mitgridfile
+            # would have produced:
+            mitgrid['XG'] = np.loadtxt(xg_file,delimiter=',')
+            mitgrid['YG'] = np.loadtxt(yg_file,delimiter=',')
+        else:
+            # read binary column-ordered data, store in dictionary fields that
+            # read_mitgridfile would have produced:
+            XG_raw = np.fromfile(xg_file,mitgridfilefields.datatype)
+            mitgrid['XG'] = np.reshape(XG_raw,(ni+1,nj+1),order='F')
+            YG_raw = np.fromfile(yg_file,mitgridfilefields.datatype)
+            mitgrid['YG'] = np.reshape(YG_raw,(ni+1,nj+1),order='F')
+    else:
+        raise ValueError(
+            "Either an mitgridfile or xg_file/yg_file pair must be provided.")
 
     # for now, assume spherical geoid (perhaps user-specified later):
     geod = pyproj.Geod(ellps='sphere')
 
     # determine original XG, YG matrix indices corresponding to user input
     # lat/lon corners:
+
     i1,j1,_ = util.nearest(lon1,lat1,mitgrid['XG'],mitgrid['YG'],geod)
     i2,j2,_ = util.nearest(lon2,lat2,mitgrid['XG'],mitgrid['YG'],geod)
 
@@ -819,7 +855,9 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
     (newgrid,ni_regridded,nj_regridded) = regrid(
-        args.filename,
+        args.mitgridfile,
+        args.xg_file,
+        args.yg_file,
         args.ni,
         args.nj,
         args.lon1,
