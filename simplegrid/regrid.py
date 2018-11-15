@@ -125,8 +125,27 @@ def regrid( mitgridfile,xg_file,yg_file,ni,nj,
     # determine original XG, YG matrix indices corresponding to user input
     # lat/lon corners:
 
-    i1,j1,_ = util.nearest(lon1,lat1,mitgrid['XG'],mitgrid['YG'],geod)
-    i2,j2,_ = util.nearest(lon2,lat2,mitgrid['XG'],mitgrid['YG'],geod)
+    i_nw,j_nw,_ = util.nearest(lon1,lat1,mitgrid['XG'],mitgrid['YG'],geod)
+    i_se,j_se,_ = util.nearest(lon2,lat2,mitgrid['XG'],mitgrid['YG'],geod)
+
+    # make sure diagonal corners and not degenerate sides have been input:
+    if i_nw==i_se or j_nw==j_se:
+        raise ValueError("lon/lat input pairs must be diagonally-opposed.")
+
+    # if necessary, rotate xg, yg into user-directed nw/se alignment:
+    while not (j_nw>j_se and i_se>i_nw):
+        if verbose:
+            print('performing 90 degree XG, YG rotation...')
+            print('...start: (i,j)_nw = ({0},{1}), (i,j)_se = ({2},{3})'.format(i_nw,j_nw,i_se,j_se))
+        mitgrid['XG'] = np.rot90(mitgrid['XG'])
+        mitgrid['YG'] = np.rot90(mitgrid['YG'])
+        i_nw,j_nw,_ = util.nearest(lon1,lat1,mitgrid['XG'],mitgrid['YG'],geod)
+        i_se,j_se,_ = util.nearest(lon2,lat2,mitgrid['XG'],mitgrid['YG'],geod)
+        if verbose:
+            print('...end:   (i,j)_nw = ({0},{1}), (i,j)_se = ({2},{3})'.format(i_nw,j_nw,i_se,j_se))
+    # assign to range-defining indices understood by subsequent code:
+    i1,i2 = i_nw, i_se
+    j1,j2 = j_nw, j_se
 
     if verbose:
         print('remeshing {0} x {1} cell grid based on'.format(
