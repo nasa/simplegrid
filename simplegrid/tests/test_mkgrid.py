@@ -10,12 +10,20 @@ class TestMkgrid(unittest.TestCase):
         Results are compared against mitgrid file created using simplegrid
         command-line call:
 
-        $ simplegrid 1. 1. 2. 2. 1 1 mkgrid_test_1.mitgrid
+        simplegrid \
+            --lon1 1. \
+            --lat1 2. \
+            --lon2 2. \
+            --lat2 1. \
+            --lon_subscale 1 \
+            --lat_subscale 1 \
+            --outfile mkgrid_test_1.mitgrid
+
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.mkgrid.mkgrid(
-            lon1=1., lat1=1.,
-            lon2=2., lat2=2.,
+            lon1=1., lat1=2.,
+            lon2=2., lat2=1.,
             lon_subscale=1, lat_subscale=1)
 
         validated_grid = sg.gridio.read_mitgridfile('./data/mkgrid_test_1.mitgrid',1,1)
@@ -30,12 +38,20 @@ class TestMkgrid(unittest.TestCase):
         Results are compared against mitgrid file created using simplegrid
         command-line call:
 
-        $ simplegrid 1. 1. 2. 2. 3 3 mkgrid_test_2.mitgrid
+        simplegrid \
+            --lon1 1. \
+            --lat1 2. \
+            --lon2 2. \
+            --lat2 1. \
+            --lon_subscale 3 \
+            --lat_subscale 3 \
+            --outfile mkgrid_test_2.mitgrid
+
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.mkgrid.mkgrid(
-            lon1=1., lat1=1.,
-            lon2=2., lat2=2.,
+            lon1=1., lat1=2.,
+            lon2=2., lat2=1.,
             lon_subscale=3, lat_subscale=3)
 
         validated_grid = sg.gridio.read_mitgridfile('./data/mkgrid_test_2.mitgrid',3,3)

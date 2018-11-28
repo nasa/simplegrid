@@ -5,6 +5,7 @@ import math
 import numpy as np
 import os
 import pyproj
+from . import computegrid
 from . import gridio
 from . import mitgridfilefields
 from . import util
@@ -247,91 +248,10 @@ def regrid( mitgridfile,xg_file,yg_file,ni,nj,
     # user-specified subdivision level, times two ("compute grid" resolution):
     #
 
-    # 2a: iterate over compute_grid, filling in x-direction edges according to
-    # user-specified subdivisions:
-
-    # transformation from partitioned, strided nditer space (i_n,j_n) to
-    # underlying compute_grid space (i_cg,j_cg):
-    i_cg = lambda i_n,lon_subscale : i_n*2*lon_subscale
-    j_cg = lambda j_n,lat_subscale : j_n*2*lat_subscale
-
-    it = np.nditer(
-        [compute_grid_xg[:-1:lon_subscale*2,::lat_subscale*2],
-         compute_grid_yg[:-1:lon_subscale*2,::lat_subscale*2]],
-        flags=['multi_index'])
-    while not it.finished:
-        # compute equally-spaced x-edge subdivisions...:
-        lon1 = it[0]
-        lat1 = it[1]
-        lon2 = compute_grid_xg[
-            i_cg(it.multi_index[0]+1,lon_subscale),
-            j_cg(it.multi_index[1],lat_subscale)]
-        lat2 = compute_grid_yg[
-            i_cg(it.multi_index[0]+1,lon_subscale),
-            j_cg(it.multi_index[1],lat_subscale)]
-        if not any(np.isnan((lon1,lat1,lon2,lat2))):
-            x_edge_subdivided_lonlats = geod.npts(
-                lon1,lat1,lon2,lat2,
-                lon_subscale*2-1)                   # n intermediate points
-            # ...and store to compute_grid:
-            compute_grid_xg[
-                i_cg(it.multi_index[0],lon_subscale)+1:i_cg(it.multi_index[0]+1,lon_subscale),
-                j_cg(it.multi_index[1],lat_subscale)] = \
-                np.array(x_edge_subdivided_lonlats)[:,0]
-            compute_grid_yg[
-                i_cg(it.multi_index[0],lon_subscale)+1:i_cg(it.multi_index[0]+1,lon_subscale),
-                j_cg(it.multi_index[1],lat_subscale)] = \
-                np.array(x_edge_subdivided_lonlats)[:,1]
-        it.iternext()
-
-    if verbose:
-        print('compute_grid after x-edge subdivision:')
-        print('compute_grid_xg:')
-        print(compute_grid_xg)
-        print('compute_grid_yg:')
-        print(compute_grid_yg)
-
-    # 2b: with x-direction subdivisions in place, iterate over compute_grid,
-    # filling in all y-direction values according to user-specified
-    # subdivisions. result will be fully-populated array of corner points:
-
-    # (j_cg transformation from 2a still applies)
-
-    it = np.nditer(
-        [compute_grid_xg[:,:-1:lat_subscale*2],
-         compute_grid_yg[:,:-1:lat_subscale*2]],
-        flags=['multi_index'])
-    while not it.finished:
-        # compute equally-spaced y-edge subdivisions...:
-        lon1 = it[0]
-        lat1 = it[1]
-        lon2 = compute_grid_xg[
-            it.multi_index[0],
-            j_cg(it.multi_index[1]+1,lat_subscale)]
-        lat2 = compute_grid_yg[
-            it.multi_index[0],
-            j_cg(it.multi_index[1]+1,lat_subscale)]
-        if not any(np.isnan((lon1,lat1,lon2,lat2))):
-            y_subdivided_lonlats = geod.npts(
-                lon1,lat1,lon2,lat2,
-                lat_subscale*2-1)                   # n intermediate points
-            # ...and store to compute_grid:
-            compute_grid_xg[
-                it.multi_index[0],
-                j_cg(it.multi_index[1],lat_subscale)+1:j_cg(it.multi_index[1]+1,lat_subscale)] = \
-                np.array(y_subdivided_lonlats)[:,0]
-            compute_grid_yg[
-                it.multi_index[0],
-                j_cg(it.multi_index[1],lat_subscale)+1:j_cg(it.multi_index[1]+1,lat_subscale)] = \
-                np.array(y_subdivided_lonlats)[:,1]
-        it.iternext()
-
-    if verbose:
-        print('compute_grid after y_direction subdivision fill-in:')
-        print('compute_grid_xg:')
-        print(compute_grid_xg)
-        print('compute_grid_yg:')
-        print(compute_grid_yg)
+    (compute_grid_xg,compute_grid_yg) = computegrid.cgfill(
+        compute_grid_xg,compute_grid_yg,
+        0,num_compute_grid_rows-1,0,num_compute_grid_cols-1,
+        lon_subscale,lat_subscale,geod,verbose)
 
     #
     # Step 3: Generate areas for sub-quads at the compute_grid array resolution
