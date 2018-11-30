@@ -32,7 +32,7 @@ class TestRegrid(unittest.TestCase):
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(newgrid,validated_grid):
-            nptest.assert_array_equal(newgrid[a],validated_grid[b])
+            nptest.assert_almost_equal(newgrid[a],validated_grid[b])
 
 
     def test_regrid_2(self):
@@ -62,7 +62,7 @@ class TestRegrid(unittest.TestCase):
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(newgrid,validated_grid):
-            nptest.assert_array_equal(newgrid[a],validated_grid[b])
+            nptest.assert_almost_equal(newgrid[a],validated_grid[b])
 
 
     def test_regrid_3(self):
@@ -92,7 +92,7 @@ class TestRegrid(unittest.TestCase):
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(newgrid,validated_grid):
-            nptest.assert_array_equal(newgrid[a],validated_grid[b])
+            nptest.assert_almost_equal(newgrid[a],validated_grid[b])
 
 
     def test_regrid_4(self):
@@ -124,7 +124,7 @@ class TestRegrid(unittest.TestCase):
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(newgrid,validated_grid):
-            nptest.assert_array_equal(newgrid[a],validated_grid[b])
+            nptest.assert_almost_equal(newgrid[a],validated_grid[b])
 
 
     def test_regrid_5(self):
@@ -156,7 +156,7 @@ class TestRegrid(unittest.TestCase):
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(newgrid,validated_grid):
-            nptest.assert_array_equal(newgrid[a],validated_grid[b])
+            nptest.assert_almost_equal(newgrid[a],validated_grid[b])
 
 
 if __name__=='__main__':
