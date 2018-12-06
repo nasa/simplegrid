@@ -256,7 +256,7 @@ def regrid( mitgridfile,xg_file,yg_file,ni,nj,
     # user-specified subdivision level, times two ("compute grid" resolution):
     #
 
-    (compute_grid_xg,compute_grid_yg) = computegrid.cgfill(
+    (compute_grid_xg,compute_grid_yg) = computegrid.fill(
         compute_grid_xg,compute_grid_yg,
         0,num_compute_grid_rows-1,0,num_compute_grid_cols-1,
         lon_subscale,lat_subscale,geod,verbose)
@@ -265,7 +265,7 @@ def regrid( mitgridfile,xg_file,yg_file,ni,nj,
     # Step 3: Generate areas for sub-quads at the compute_grid array resolution
     #
 
-    compute_areas = computegrid.cgareas(
+    compute_areas = computegrid.areas(
         compute_grid_xg,compute_grid_yg,geod,verbose)
 
     #
@@ -275,7 +275,7 @@ def regrid( mitgridfile,xg_file,yg_file,ni,nj,
     outgrid = {key:None for key in mitgridfilefields.names}
 
     if edge_method:
-        (compute_edges_x,compute_edges_y) = computegrid.cgedges(
+        (compute_edges_x,compute_edges_y) = computegrid.edges(
             compute_grid_xg,compute_grid_yg,geod,verbose)
 
 
