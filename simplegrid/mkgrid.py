@@ -145,7 +145,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
         lon_subscale,lat_subscale,geod,verbose)
 
     #
-    # Step 3: Create and fill in output quantities based on compute grid data:
+    # Step 3: Use compute grid to generate full set of mitgrid data:
     #
 
     outgrid = computegrid.tomitgrid( compute_grid_xg, compute_grid_yg,

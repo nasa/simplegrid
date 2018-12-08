@@ -152,100 +152,109 @@ def regrid( mitgridfile,xg_file,yg_file,ni,nj,
         i_se,j_se,_ = util.nearest(lon2,lat2,mitgrid['XG'],mitgrid['YG'],geod)
         if verbose:
             print('...end:   (i,j)_nw = ({0},{1}), (i,j)_se = ({2},{3})'.format(i_nw,j_nw,i_se,j_se))
-    # assign to range-defining indices understood by subsequent code:
-    i1,i2 = i_nw, i_se
-    j1,j2 = j_nw, j_se
 
     if verbose:
         print('remeshing {0} x {1} cell grid based on'.format(
-            abs(i2-i1),abs(j2-j1)))
+            abs(i_nw-i_se),abs(j_nw-j_se)))
         print('located corner points ({0:9.4f},{1:9.4f}) and ({2:9.4f},{3:9.4f})'.format(
             lon1,lat1,lon2,lat2))
         print('resulting grid will be {0} x {1} cells (lon/lat subscale = {2}/{3})'.format(
-            abs(i2-i1)*lon_subscale,abs(j2-j1)*lat_subscale,lon_subscale,lat_subscale))
+            abs(i_nw-i_se)*lon_subscale,abs(j_nw-j_se)*lat_subscale,lon_subscale,lat_subscale))
 
     # since matrix slice operations are from start:(stop-1):stride, define a
     # lambda function to make it clear when the stop point should be inclusive,
     # i.e., start:incl(stop):stride
-
     incl = lambda idx : idx+1
 
     #
     # Step 1:
     #
-    # Based on user-selected extents, create a "plus one" matrix partition
-    # consisting of original cell range plus a boundary "ring" one cell wide
-    # to allow for computing boundary grid edge values.
+    # Based on user-selected corner points and discretization level, create a
+    # "compute grid" that spans the selected NW/SE range, at double the
+    # resolution, plus a boundary "ring" one compute cell wide.  Initializing
+    # boundary grid values to NaNs will allow us to compute subsequent mitgrid
+    # values using consistent indexing, while naturally producing undefined
+    # values at the boundaries. The total compute grid ranges are given by
+    # LB/UB, while the user-selected range, given by ilb_mitgrid, iub_mitgrid,
+    # jlb_mitgrid, jub_mitgrid, is mapped (along with all intermediate mitgrid
+    # points) to the corresponding compute grid range, lb/ub; a picture might
+    # help:
     #
-    # In this, and subsequent operations, the following grid index notation will
-    # be useful:
+    #   '<->' == corner point mapping
+    #    ...  == range of intermediate grid point mapping
     #
-    #    (i, j)        - original (user-selected) grid indices
-    #    (i_cg, jc_cg) - "compute grid" indices (doubled resolution)
-    #    (i_ca, jc_ca) - "compute area" indices (doubled resolution)
+    #                   y,j ^
+    #                       |
+    #                   jUB +------------------+
+    #                       |                  |
+    #   jub_mitgrid <-> jub +   o----------+   |<-- ring of NaN values
+    #        .              |   |          |   |
+    #        .              |   |          |<--|--- area to be regridded
+    #        .              |   |          |   |
+    #        .              |   |          |   |
+    #   jlb_mitgrid <-> jlb +   +----------o   |    o = user-specified NW/SE corners
+    #                       |                  |
+    #                   jLB +---+----------+---+--> x,i
+    #                      iLB ilb        iub iUB
+    #                           ^          ^
+    #                           |          |
+    #                           v          v
+    #                  ilb_mitgrid  ...  iub_mitgrid
     #
 
-    # original grid index bounds based on user lon/lat selections:
-    ilb, jlb = min(i1,i2), min(j1,j2)
-    iub, jub = max(i1,i2), max(j1,j2)
+    # mitgrid index bounds:
+    ilb_mitgrid, jlb_mitgrid = min(i_nw,i_se), min(j_nw,j_se)
+    iub_mitgrid, jub_mitgrid = max(i_nw,i_se), max(j_nw,j_se)
 
-    # "plus one" grid extents (note that if tile boundary points have been
-    # selected, lower bounds may be negative, and/or upper bounds may be out of
-    # range; both are ok in the current logic):
-    iLB, iUB = ilb-1, iub+1
-    jLB, jUB = jlb-1, jub+1
+    # compute grid bounds:
+    iLB = 0
+    ilb = 1
+    iub = ilb + 2*lon_subscale*(iub_mitgrid-ilb_mitgrid)
+    iUB = iub + 1
+    jLB = 0
+    jlb = 1
+    jub = jlb + 2*lat_subscale*(jub_mitgrid-jlb_mitgrid)
+    jUB = jub + 1
 
-    # "compute grid" dimensions, allocation:
-    num_compute_grid_rows = (iUB-iLB)*lon_subscale*2 + 1
-    num_compute_grid_cols = (jUB-jLB)*lat_subscale*2 + 1
+    # compute grid initialization, allocation:
+    num_compute_grid_rows = iUB + 1
+    num_compute_grid_cols = jUB + 1
     compute_grid_xg = np.empty((num_compute_grid_rows,num_compute_grid_cols))
     compute_grid_xg[:,:] = np.nan
     compute_grid_yg = np.empty((num_compute_grid_rows,num_compute_grid_cols))
     compute_grid_yg[:,:] = np.nan
 
-    # map mitgrid values to corresponding locations in compute_grid
-    # (note: if user-selected range includes a tile boundary, "plus one" extents
-    # may be out of range in XG and YG.  For purposes of compute_grid
-    # initialization, make sure this does not happen):
-
-    iLB_bounded = max(iLB,0)
-    jLB_bounded = max(jLB,0)
-    iUB_bounded = min(iUB,mitgrid['XG'].shape[0])
-    jUB_bounded = min(jUB,mitgrid['XG'].shape[1])
+    # map mitgrid values to corresponding compute_grid locations:
     
-    # index transformation from partitioned grid space to compute grid space:
-    i_cg = lambda i,iLB,iLB_bounded,lon_subscale : \
-            (iLB_bounded-iLB+i)*lon_subscale*2
-    j_cg = lambda j,jLB,jLB_bounded,lat_subscale : \
-            (jLB_bounded-jLB+j)*lat_subscale*2
+    # index transformation from partitioned grid space (e.g., between lower and
+    # upper bounds) to compute grid space:
+    i_cg = lambda i_mitgrid,lon_subscale : 1 + 2*lon_subscale*i_mitgrid
+    j_cg = lambda j_mitgrid,lat_subscale : 1 + 2*lat_subscale*j_mitgrid
 
     it = np.nditer(
-        [mitgrid['XG'][iLB_bounded:incl(iUB_bounded),jLB_bounded:incl(jUB_bounded)],
-         mitgrid['YG'][iLB_bounded:incl(iUB_bounded),jLB_bounded:incl(jUB_bounded)]],
+        [mitgrid['XG'][ilb_mitgrid:incl(iub_mitgrid),jlb_mitgrid:incl(jub_mitgrid)],
+         mitgrid['YG'][ilb_mitgrid:incl(iub_mitgrid),jlb_mitgrid:incl(jub_mitgrid)]],
         flags=['multi_index'])
     while not it.finished:
         compute_grid_xg[
-            i_cg(it.multi_index[0],iLB,iLB_bounded,lon_subscale),
-            j_cg(it.multi_index[1],jLB,jLB_bounded,lat_subscale)] = it[0]
+            i_cg(it.multi_index[0],lon_subscale),
+            j_cg(it.multi_index[1],lat_subscale)] = it[0]
         compute_grid_yg[
-            i_cg(it.multi_index[0],iLB,iLB_bounded,lon_subscale),
-            j_cg(it.multi_index[1],jLB,jLB_bounded,lat_subscale)] = it[1]
+            i_cg(it.multi_index[0],lon_subscale),
+            j_cg(it.multi_index[1],lat_subscale)] = it[1]
         it.iternext()
 
     if verbose:
         print('user-selected range:')
         print("mitgrid['XG']:")
-        print(mitgrid['XG'][ilb:incl(iub),jlb:incl(jub)])
+        print(mitgrid['XG'][
+            ilb_mitgrid:incl(iub_mitgrid),
+            jlb_mitgrid:incl(jub_mitgrid)])
         print("mitgrid['YG']:")
-        print(mitgrid['YG'][ilb:incl(iub),jlb:incl(jub)])
-
-        print('user-selected range, "plus one":')
-        print("mitgrid['XG'] plus one:")
-        print(mitgrid['XG'][iLB_bounded:incl(iUB_bounded),jLB_bounded:incl(jUB_bounded)])
-        print("mitgrid['YG'] plus one:")
-        print(mitgrid['YG'][iLB_bounded:incl(iUB_bounded),jLB_bounded:incl(jUB_bounded)])
-
-        print('user-selected range, plus one, mapped to compute_grid:')
+        print(mitgrid['YG'][
+            ilb_mitgrid:incl(iub_mitgrid),
+            jlb_mitgrid:incl(jub_mitgrid)])
+        print('user-selected range, mapped to compute_grid:')
         print('compute_grid_xg:')
         print(compute_grid_xg)
         print('compute_grid_yg:')
@@ -257,615 +266,20 @@ def regrid( mitgridfile,xg_file,yg_file,ni,nj,
     #
 
     (compute_grid_xg,compute_grid_yg) = computegrid.fill(
-        compute_grid_xg,compute_grid_yg,
-        0,num_compute_grid_rows-1,0,num_compute_grid_cols-1,
+        compute_grid_xg,compute_grid_yg, ilb,iub,jlb,jub,
         lon_subscale,lat_subscale,geod,verbose)
 
     #
-    # Step 3: Generate areas for sub-quads at the compute_grid array resolution
+    # Step 3: Use compute grid to generate full set of mitgrid data:
     #
 
-    compute_areas = computegrid.areas(
-        compute_grid_xg,compute_grid_yg,geod,verbose)
-
-    #
-    # Step 4: Create and fill in output quantities based on compute grid data:
-    #
-
-    outgrid = {key:None for key in mitgridfilefields.names}
-
-    if edge_method:
-        (compute_edges_x,compute_edges_y) = computegrid.edges(
-            compute_grid_xg,compute_grid_yg,geod,verbose)
-
-
-    # compute regridded grid location quantities:
-    #   XC - longitude east of center of grid (tracer) cell
-    #   YC - latitude north of center of grid (tracer) cell
-    #   XG - latitude east of southwest corner of grid (tracer) cell
-    #   YG - latitude north of southwest corner of grid (tracer) cell
-
-    # XC, YC directly from compute grid partitions:
-
-    # compute grid partitioning:
-    cg_first_i  = lon_subscale*2 + 1
-    cg_last_i   = incl(cg_first_i + 2*((iub-ilb)*lon_subscale-1))
-    cg_stride_i = 2
-    cg_first_j  = lat_subscale*2 + 1
-    cg_last_j   = incl(cg_first_j + 2*((jub-jlb)*lat_subscale-1))
-    cg_stride_j = 2
-    outgrid['XC'] = compute_grid_xg[
-        cg_first_i:cg_last_i:cg_stride_i,
-        cg_first_j:cg_last_j:cg_stride_j]
-    outgrid['YC'] = compute_grid_yg[
-        cg_first_i:cg_last_i:cg_stride_i,
-        cg_first_j:cg_last_j:cg_stride_j]
-    if verbose:
-        print("outgrid['XC']:")
-        print(outgrid['XC'])
-        print("outgrid['YC']:")
-        print(outgrid['YC'])
-
-    # XG, YG directly from compute grid partitions:
-
-    # compute grid partitioning:
-    cg_first_i  = lon_subscale*2
-    cg_last_i   = incl(cg_first_i + 2*(iub-ilb)*lon_subscale)
-    cg_stride_i = 2
-    cg_first_j  = lat_subscale*2
-    cg_last_j   = incl(cg_first_j + 2*(jub-jlb)*lat_subscale)
-    cg_stride_j = 2
-    outgrid['XG'] = compute_grid_xg[
-        cg_first_i:cg_last_i:cg_stride_i,
-        cg_first_j:cg_last_j:cg_stride_j]
-    outgrid['YG'] = compute_grid_yg[
-        cg_first_i:cg_last_i:cg_stride_i,
-        cg_first_j:cg_last_j:cg_stride_j]
-    if verbose:
-        print("outgrid['XG']:")
-        print(outgrid['XG'])
-        print("outgrid['YG']:")
-        print(outgrid['YG'])
-
-    # tracer cell-related quantities, RAC, DXG, DYG:
-    #   DXG - (tracer) cell face separation in X along southern cell wall
-    #   DYG - (tracer) cell face separation in Y along western cell wall
-    #   RAC - tracer cell area presented in the vertical direction
-
-    # DXG tracer cell southern edge computed from compute_grid grid point
-    # distances:
-
-    outgrid['DXG'] = np.empty(((iub-ilb)*lon_subscale, (jub-jlb)*lat_subscale+1))
-    outgrid['DXG'][:,:] = np.nan    # error check, mostly
-
-    if edge_method:
-        for i in range(0,(iub-ilb)*lon_subscale):
-            for j in range(0,incl((jub-jlb)*lat_subscale)):
-                outgrid['DXG'][i,j] = \
-                    compute_edges_x[2*lon_subscale+2*i  ,2*lat_subscale+2*j] + \
-                    compute_edges_x[2*lon_subscale+2*i+1,2*lat_subscale+2*j]
-
-    else:
-        # compute grid partitioning:
-        cg_first_i  = 2*lon_subscale
-        cg_last_i   = incl(cg_first_i + (iub-ilb)*2*(lon_subscale-1))
-        cg_stride_i = 2
-        cg_first_j  = 2*lat_subscale
-        cg_last_j   = incl(cg_first_j + (jub-jlb)*2*lat_subscale)
-        cg_stride_j = 2
-
-        # transformation from partitioned, strided nditer space (i_n,j_n) to
-        # underlying compute_grid space (i_cg,j_cg):
-        i_cg = lambda i_n,lon_subscale : 2*i_n + 2*lon_subscale
-        j_cg = lambda j_n,lat_subscale : 2*j_n + 2*lat_subscale
-
-        it = np.nditer(
-            [compute_grid_xg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_i],
-             compute_grid_yg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j]],
-             flags=['multi_index'])
-        while not it.finished:
-            # (don't need to check for NaNs since all values are within valid index
-            # range)
-            _,_,outgrid['DXG'][it.multi_index[0],it.multi_index[1]] = geod.inv(
-                it[0],                                          # lon1
-                it[1],                                          # lat1
-                compute_grid_xg[
-                    i_cg(it.multi_index[0]+1,lon_subscale),
-                    j_cg(it.multi_index[1]  ,lat_subscale)],    # lon2
-                compute_grid_yg[
-                    i_cg(it.multi_index[0]+1,lon_subscale),
-                    j_cg(it.multi_index[1]  ,lat_subscale)])    # lat2
-            it.iternext()
-
-    if verbose:
-        print("outgrid['DXG']:")
-        print(outgrid['DXG'])
-
-    # DYG tracer cell western edge computed from compute_grid grid point
-    # distances:
-
-    outgrid['DYG'] = np.empty(((iub-ilb)*lon_subscale+1,(jub-jlb)*lat_subscale))
-    outgrid['DYG'][:,:] = np.nan    # error check, mostly
-
-    if edge_method:
-        for i in range(0,incl((iub-ilb)*lon_subscale)):
-            for j in range(0,(jub-jlb)*lat_subscale):
-                outgrid['DYG'][i,j] = \
-                    compute_edges_y[2*lon_subscale+2*i,2*lat_subscale+2*j  ] + \
-                    compute_edges_y[2*lon_subscale+2*i,2*lat_subscale+2*j+1]
-
-    else:
-        # compute grid partitioning:
-        cg_first_i  = 2*lon_subscale
-        cg_last_i   = incl(cg_first_i + (iub-ilb)*2*lon_subscale)
-        cg_stride_i = 2
-        cg_first_j  = 2*lat_subscale
-        cg_last_j   = incl(cg_first_j + ((jub-jlb)*lat_subscale-1)*2)
-        cg_stride_j = 2
-
-        # transformation from partitioned, strided nditer space (i_n,j_n) to
-        # underlying compute_grid space (i_cg,j_cg) (same as above):
-        i_cg = lambda i_n,lon_subscale : 2*i_n + 2*lon_subscale
-        j_cg = lambda j_n,lat_subscale : 2*j_n + 2*lat_subscale
-
-        it = np.nditer(
-            [compute_grid_xg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j],
-             compute_grid_yg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j]],
-            flags=['multi_index'])
-
-        while not it.finished:
-            # (don't need to check for NaNs since all values are within valid index
-            # range)
-            _,_,outgrid['DYG'][it.multi_index[0],it.multi_index[1]] = geod.inv(
-                it[0],                                          # lon1
-                it[1],                                          # lat1
-                compute_grid_xg[
-                    i_cg(it.multi_index[0]  ,lon_subscale),
-                    j_cg(it.multi_index[1]+1,lat_subscale)],    # lon2
-                compute_grid_yg[
-                    i_cg(it.multi_index[0]  ,lon_subscale),
-                    j_cg(it.multi_index[1]+1,lat_subscale)])    # lat2
-            it.iternext()
-
-    if verbose:
-        print("outgrid['DYG']:")
-        print(outgrid['DYG'])
-
-    # RAC computed from subcell area sums in compute_areas:
-
-    outgrid['RAC'] = np.empty(((iub-ilb)*lon_subscale, (jub-jlb)*lat_subscale))
-    outgrid['RAC'][:,:] = np.nan    # error check, mostly
-
-    # compute_areas partitioning:
-    ca_first_i  = lon_subscale*2
-    ca_last_i   = incl(ca_first_i + ((iub-ilb)*lon_subscale-1)*2)
-    ca_stride_i = 2
-    ca_first_j  = lat_subscale*2
-    ca_last_j   = incl(ca_first_j + ((jub-jlb)*lat_subscale-1)*2)
-    ca_stride_j = 2
-
-    # transformation from partitioned, strided compute_areas indices (nditer) to
-    # underlying compute_areas indices:
-    i_ca = lambda i_n,lon_subscale : 2*i_n + 2*lon_subscale
-    j_ca = lambda j_n,lat_subscale : 2*j_n + 2*lat_subscale
-
-    it = np.nditer(
-        compute_areas[ca_first_i:ca_last_i:ca_stride_i,ca_first_j:ca_last_j:ca_stride_j],
-        flags=['multi_index'])
-    while not it.finished:
-        # (don't need to check for NaNs since all values are within valid index
-        # range)
-        outgrid['RAC'][it.multi_index[0],it.multi_index[1]] = \
-            it[0] + \
-            compute_areas[i_ca(it.multi_index[0],lon_subscale)+1,j_ca(it.multi_index[1],lat_subscale)  ] + \
-            compute_areas[i_ca(it.multi_index[0],lon_subscale)+1,j_ca(it.multi_index[1],lat_subscale)+1] + \
-            compute_areas[i_ca(it.multi_index[0],lon_subscale)  ,j_ca(it.multi_index[1],lat_subscale)+1]
-        it.iternext()
-    if verbose:
-        print("outgrid['RAC']:")
-        print(outgrid['RAC'])
-
-    # vorticity cell-related quantities, DXC, DYC, RAZ
-    #   DXC - vorticity cell edge length in X-direction
-    #   DYC - vorticity cell edge length in Y-direction
-    #   RAZ - vorticity cell area presented in the vertical direction
-
-    # DXC vorticity cell edge lengths computed from compute_grid points since
-    # endpoints are centered in tracer cells:
-
-    outgrid['DXC'] = np.empty(((iub-ilb)*lon_subscale+1, (jub-jlb)*lat_subscale))
-    outgrid['DXC'][:,:] = np.nan
-
-    if edge_method:
-        for i in range(0,incl((iub-ilb)*lon_subscale)):
-            for j in range(0,incl((jub-jlb)*lat_subscale-1)):
-                outgrid['DXC'][i,j] = \
-                    compute_edges_x[2*lon_subscale+2*i-1,2*lat_subscale+2*j+1] + \
-                    compute_edges_x[2*lon_subscale+2*i  ,2*lat_subscale+2*j+1]
-
-    else:
-        # compute grid partitioning:
-        cg_first_i  = lon_subscale*2 - 1
-        cg_last_i   = incl(cg_first_i + (iub-ilb)*lon_subscale*2)
-        cg_stride_i = 2
-        cg_first_j  = lat_subscale*2 + 1
-        cg_last_j   = incl(cg_first_j + ((jub-jlb)*lat_subscale-1)*2)
-        cg_stride_j = 2
-
-        # transformation from partitioned, strided nditer space (i_n,j_n) to
-        # underlying compute_grid space (i_cg,j_cg):
-        i_cg = lambda i_n,lon_subscale : 2*lon_subscale-1 + 2*i_n
-        j_cg = lambda j_n,lat_subscale : 2*lat_subscale+1 + 2*j_n
-
-        it = np.nditer(
-            [compute_grid_xg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_i],
-             compute_grid_yg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j]],
-            flags=['multi_index'])
-        while not it.finished:
-            lon1 = it[0]
-            lat1 = it[1]
-            lon2 = compute_grid_xg[
-                i_cg(it.multi_index[0]+1,lon_subscale),
-                j_cg(it.multi_index[1]  ,lat_subscale)]
-            lat2 = compute_grid_yg[
-                i_cg(it.multi_index[0]+1,lon_subscale),
-                j_cg(it.multi_index[1]  ,lat_subscale)]
-            if not any(np.isnan((lon1,lat1,lon2,lat2))):
-                _,_,outgrid['DXC'][it.multi_index[0],it.multi_index[1]] = geod.inv(
-                    lon1,lat1,lon2,lat2)
-            it.iternext()
-
-    if verbose:
-        print("outgrid['DXC']:")
-        print(outgrid['DXC'])
-
-    # DYC vorticity cell edge lengths computed from compute_grid points:
-
-    outgrid['DYC'] = np.empty(((iub-ilb)*lon_subscale, (jub-jlb)*lat_subscale+1))
-    outgrid['DYC'][:,:] = np.nan
-
-    if edge_method:
-        for i in range(0,incl((iub-ilb)*lon_subscale-1)):
-            for j in range(0,incl((jub-jlb)*lat_subscale)):
-                outgrid['DYC'][i,j] = \
-                    compute_edges_y[2*lon_subscale+2*i+1,2*lat_subscale+2*j-1] + \
-                    compute_edges_y[2*lon_subscale+2*i+1,2*lat_subscale+2*j  ]
-
-    else:
-        # compute grid partitioning:
-        cg_first_i  = lon_subscale*2 + 1
-        cg_last_i   = incl(cg_first_i + ((iub-ilb)*lon_subscale-1)*2)
-        cg_stride_i = 2
-        cg_first_j  = lat_subscale*2 - 1
-        cg_last_j   = incl(cg_first_j + (jub-jlb)*lat_subscale*2)
-        cg_stride_j = 2
-
-        # transformation from partitioned, strided nditer space (i_n,j_n) to
-        # underlying compute_grid space (i_cg,j_cg):
-        i_cg = lambda i_n,lon_subscale : 2*lon_subscale+1 + 2*i_n
-        j_cg = lambda j_n,lat_subscale : 2*lat_subscale-1 + 2*j_n
-
-        it = np.nditer(
-            [compute_grid_xg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_i],
-             compute_grid_yg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j]],
-            flags=['multi_index'])
-        while not it.finished:
-            lon1 = it[0]
-            lat1 = it[1]
-            lon2 = compute_grid_xg[
-                i_cg(it.multi_index[0]  ,lon_subscale),
-                j_cg(it.multi_index[1]+1,lat_subscale)]
-            lat2 = compute_grid_yg[
-                i_cg(it.multi_index[0]  ,lon_subscale),
-                j_cg(it.multi_index[1]+1,lat_subscale)]
-            if not any(np.isnan((lon1,lat1,lon2,lat2))):
-                _,_,outgrid['DYC'][it.multi_index[0],it.multi_index[1]] = geod.inv(
-                    lon1,lat1,lon2,lat2)
-            it.iternext()
-
-    if verbose:
-        print("outgrid['DYC']:")
-        print(outgrid['DYC'])
-
-    # RAZ vorticity cell areas computed from subcell areas in compute_areas:
-
-    outgrid['RAZ'] = np.empty(((iub-ilb)*lon_subscale+1, (jub-jlb)*lat_subscale+1))
-    outgrid['RAZ'][:,:] = np.nan
-
-    # compute_areas partitioning:
-    ca_first_i  = lon_subscale*2 - 1
-    ca_last_i   = incl(ca_first_i + (iub-ilb)*lon_subscale*2)
-    ca_stride_i = 2
-    ca_first_j  = lat_subscale*2 - 1
-    ca_last_j   = incl(ca_first_j + (jub-jlb)*lat_subscale*2)
-    ca_stride_j = 2
-
-    # transformation from partitioned, strided compute_areas indices (nditer) to
-    # underlying compute_areas indices:
-    i_ca = lambda i_n,lon_subscale : 2*lon_subscale - 1 + 2*i_n
-    j_ca = lambda j_n,lat_subscale : 2*lat_subscale - 1 + 2*j_n
-
-    it = np.nditer(
-        compute_areas[ca_first_i:ca_last_i:ca_stride_i,ca_first_j:ca_last_j:ca_stride_j],
-        flags=['multi_index'])
-    while not it.finished:
-        outgrid['RAZ'][it.multi_index[0],it.multi_index[1]] = \
-            it[0] + \
-            compute_areas[i_ca(it.multi_index[0],lon_subscale)+1,j_ca(it.multi_index[1],lat_subscale)  ] + \
-            compute_areas[i_ca(it.multi_index[0],lon_subscale)+1,j_ca(it.multi_index[1],lat_subscale)+1] + \
-            compute_areas[i_ca(it.multi_index[0],lon_subscale)  ,j_ca(it.multi_index[1],lat_subscale)+1]
-        it.iternext()
-    if verbose:
-        print("outgrid['RAZ']:")
-        print(outgrid['RAZ'])
-
-    # "U" cell-related quantities, DXC, DYC, RAZ
-    #   DXV - U cell edge length in X-direction between v-points
-    #   DYF - U cell edge length in Y-direction between tracer cell faces
-    #   RAW - U cell area presented in the vertical direction
-
-    # DXV U cell edge lengths computed from compute_grid points: 
-
-    outgrid['DXV'] = np.empty(((iub-ilb)*lon_subscale+1,(jub-jlb)*lat_subscale+1))
-    outgrid['DXV'][:,:] = np.nan
-
-    if edge_method:
-        for i in range(0,incl((iub-ilb)*lon_subscale)):
-            for j in range(0,incl((jub-jlb)*lat_subscale)):
-                outgrid['DXV'][i,j] = \
-                    compute_edges_x[2*lon_subscale+2*i-1,2*lat_subscale+2*j] + \
-                    compute_edges_x[2*lon_subscale+2*i  ,2*lat_subscale+2*j]
-
-    else:
-        # compute grid partitioning:
-        cg_first_i  = lon_subscale*2 -1
-        cg_last_i   = incl(cg_first_i + (iub-ilb)*lon_subscale*2)
-        cg_stride_i = 2
-        cg_first_j  = lat_subscale*2
-        cg_last_j   = incl(cg_first_j + (jub-jlb)*lat_subscale*2)
-        cg_stride_j = 2
-
-        # transformation from partitioned, strided nditer space (i_n,j_n) to
-        # underlying compute_grid space (i_cg,j_cg):
-        i_cg = lambda i_n,lon_subscale : 2*lon_subscale - 1 + 2*i_n
-        j_cg = lambda j_n,lat_subscale : 2*lat_subscale     + 2*j_n
-
-        it = np.nditer(
-            [compute_grid_xg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_i],
-             compute_grid_yg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j]],
-            flags=['multi_index'])
-        while not it.finished:
-            lon1 = it[0]
-            lat1 = it[1]
-            lon2 = compute_grid_xg[
-                i_cg(it.multi_index[0]+1,lon_subscale),
-                j_cg(it.multi_index[1]  ,lat_subscale)]
-            lat2 = compute_grid_yg[
-                i_cg(it.multi_index[0]+1,lon_subscale),
-                j_cg(it.multi_index[1]  ,lat_subscale)]
-            if not any(np.isnan((lon1,lat1,lon2,lat2))):
-                _,_,outgrid['DXV'][it.multi_index[0],it.multi_index[1]] = geod.inv(
-                    lon1,lat1,lon2,lat2)
-            it.iternext()
-
-    if verbose:
-        print("outgrid['DXV']:")
-        print(outgrid['DXV'])
-
-    # DYF U cell edge lengths computed from compute_grid points:
-
-    outgrid['DYF'] = np.empty(((iub-ilb)*lon_subscale,(jub-jlb)*lat_subscale))
-    outgrid['DYF'][:,:] = np.nan
-
-    if edge_method:
-        for i in range(0,incl((iub-ilb)*lon_subscale-1)):
-            for j in range(0,incl((jub-jlb)*lat_subscale-1)):
-                outgrid['DYF'][i,j] = \
-                    compute_edges_y[2*lon_subscale+2*i+1,2*lat_subscale+2*j  ] + \
-                    compute_edges_y[2*lon_subscale+2*i+1,2*lat_subscale+2*j+1]
-
-    else:
-        # compute grid partitioning:
-        cg_first_i  = lon_subscale*2 + 1
-        cg_last_i   = incl(cg_first_i + ((iub-ilb)*lon_subscale-1)*2)
-        cg_stride_i = 2
-        cg_first_j  = lat_subscale*2
-        cg_last_j   = incl(cg_first_j + ((jub-jlb)*lat_subscale-1)*2)
-        cg_stride_j = 2
-
-        # transformation from partitioned, strided nditer space (i_n,j_n) to
-        # underlying compute_grid space (i_cg,j_cg):
-        i_cg = lambda i_n,lon_subscale : 2*lon_subscale + 1 + 2*i_n
-        j_cg = lambda j_n,lat_subscale : 2*lat_subscale     + 2*j_n
-
-        it = np.nditer(
-            [compute_grid_xg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_i],
-             compute_grid_yg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j]],
-            flags=['multi_index'])
-        # note isnan checks not required for DYF
-        while not it.finished:
-            _,_,outgrid['DYF'][it.multi_index[0],it.multi_index[1]] = geod.inv(
-                it[0],                                          # lon1
-                it[1],                                          # lat1
-                compute_grid_xg[
-                    i_cg(it.multi_index[0]  ,lon_subscale),
-                    j_cg(it.multi_index[1]+1,lat_subscale)],    # lon2
-                compute_grid_yg[
-                    i_cg(it.multi_index[0]  ,lon_subscale),
-                    j_cg(it.multi_index[1]+1,lat_subscale)])    # lat2
-            it.iternext()
-
-    if verbose:
-        print("outgrid['DYF']:")
-        print(outgrid['DYF'])
-
-    # RAW vertical face area of U cell computed from subcell areas in
-    # compute_areas:
-
-    outgrid['RAW'] = np.empty(((iub-ilb)*lon_subscale+1,(jub-jlb)*lat_subscale))
-    outgrid['RAW'][:,:] = np.nan
-
-    # compute areas partitioning:
-    ca_first_i  = lon_subscale*2 - 1
-    ca_last_i   = incl(ca_first_i + (iub-ilb)*lon_subscale*2)
-    ca_stride_i = 2
-    ca_first_j  = lat_subscale*2
-    ca_last_j   = incl(ca_first_j + ((jub-jlb)*lat_subscale-1)*2)
-    ca_stride_j = 2
-
-    # transformation from partitioned, strided compute_areas indices (nditer) to
-    # underlying compute_areas indices:
-    i_ca = lambda i_n,lon_subscale : 2*lon_subscale - 1 + 2*i_n
-    j_ca = lambda j_n,lat_subscale : 2*lat_subscale     + 2*j_n
-
-    it = np.nditer(
-        compute_areas[ca_first_i:ca_last_i:ca_stride_i,ca_first_j:ca_last_j:ca_stride_j],
-        flags=['multi_index'])
-    while not it.finished:
-        outgrid['RAW'][it.multi_index[0],it.multi_index[1]] = \
-            it[0] + \
-            compute_areas[i_ca(it.multi_index[0],lon_subscale)+1,j_ca(it.multi_index[1],lat_subscale)  ] + \
-            compute_areas[i_ca(it.multi_index[0],lon_subscale)+1,j_ca(it.multi_index[1],lat_subscale)+1] + \
-            compute_areas[i_ca(it.multi_index[0],lon_subscale)  ,j_ca(it.multi_index[1],lat_subscale)+1]
-        it.iternext()
-    if verbose:
-        print("outgrid['RAW']:")
-        print(outgrid['RAW'])
-
-    # "V" cell-related quantities, DXF, DYU, RAS
-    #   DXF - V cell northern edge length in X-direction between u-points
-    #   DYU - V cell western edge length in Y-direction
-    #   RAS - V cell area presented in the vertical direction
-
-    # DXF V cell edge lengths computed using compute_grid point distances:
-
-    outgrid['DXF'] = np.empty(((iub-ilb)*lon_subscale,(jub-jlb)*lat_subscale))
-    outgrid['DXF'][:,:] = np.nan
-
-    if edge_method:
-        for i in range(0,incl((iub-ilb)*lon_subscale-1)):
-            for j in range(0,incl((jub-jlb)*lat_subscale-1)):
-                outgrid['DXF'][i,j] = \
-                    compute_edges_x[2*lon_subscale+2*i  ,2*lat_subscale+2*j+1] + \
-                    compute_edges_x[2*lon_subscale+2*i+1,2*lat_subscale+2*j+1]
-
-    else:
-        # compute grid partitioning:
-        cg_first_i  = lon_subscale*2
-        cg_last_i   = incl(cg_first_i + ((iub-ilb)*lon_subscale-1)*2)
-        cg_stride_i = 2
-        cg_first_j  = lat_subscale*2 + 1
-        cg_last_j   = incl(cg_first_j + ((jub-jlb)*lat_subscale-1)*2)
-        cg_stride_j = 2
-
-        # transformation from partitioned, strided nditer space (i_n,j_n) to
-        # underlying compute_grid space (i_cg,j_cg):
-        i_cg = lambda i_n,lon_subscale : 2*lon_subscale     + 2*i_n
-        j_cg = lambda j_n,lat_subscale : 2*lat_subscale + 1 + 2*j_n
-
-        it = np.nditer(
-            [compute_grid_xg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_i],
-             compute_grid_yg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j]],
-            flags=['multi_index'])
-        # note isnan checks not required for DXF
-        while not it.finished:
-            _,_,outgrid['DXF'][it.multi_index[0],it.multi_index[1]] = geod.inv(
-                it[0],                                          # lon1
-                it[1],                                          # lat1
-                compute_grid_xg[
-                    i_cg(it.multi_index[0]+1,lon_subscale),
-                    j_cg(it.multi_index[1]  ,lat_subscale)],    # lon2
-                compute_grid_yg[
-                    i_cg(it.multi_index[0]+1,lon_subscale),
-                    j_cg(it.multi_index[1]  ,lat_subscale)])    # lat2
-            it.iternext()
-
-    if verbose:
-        print("outgrid['DXF']:")
-        print(outgrid['DXF'])
-
-    # DYU V cell western edge length computed from compute_grid point distances:
-
-    outgrid['DYU'] = np.empty(((iub-ilb)*lon_subscale+1,(jub-jlb)*lat_subscale+1))
-    outgrid['DYU'][:,:] = np.nan
-
-    if edge_method:
-        for i in range(0,incl((iub-ilb)*lon_subscale)):
-            for j in range(0,incl((jub-jlb)*lat_subscale)):
-                outgrid['DYU'][i,j] = \
-                    compute_edges_y[2*lon_subscale+2*i,2*lat_subscale+2*j-1] + \
-                    compute_edges_y[2*lon_subscale+2*i,2*lat_subscale+2*j  ]
-
-    else:
-        # compute grid partitioning:
-        cg_first_i  = 2*lon_subscale
-        cg_last_i   = incl(cg_first_i + (iub-ilb)*2*lon_subscale)
-        cg_stride_i = 2
-        cg_first_j  = 2*lat_subscale-1
-        cg_last_j   = incl(cg_first_j + (jub-jlb)*2*lat_subscale)
-        cg_stride_j = 2
-
-        # transformation from partitioned, strided nditer space (i_n,j_n) to
-        # underlying compute_grid space (i_cg,j_cg):
-        i_cg = lambda i_n,lon_subscale : 2*lon_subscale     + 2*i_n
-        j_cg = lambda j_n,lat_subscale : 2*lat_subscale - 1 + 2*j_n
-
-        it = np.nditer(
-            [compute_grid_xg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j],
-             compute_grid_yg[cg_first_i:cg_last_i:cg_stride_i,cg_first_j:cg_last_j:cg_stride_j]],
-            flags=['multi_index'])
-        while not it.finished:
-            lon1 = it[0]
-            lat1 = it[1]
-            lon2 = compute_grid_xg[
-                i_cg(it.multi_index[0]  ,lon_subscale),
-                j_cg(it.multi_index[1]+1,lat_subscale)]
-            lat2 = compute_grid_yg[
-                i_cg(it.multi_index[0]  ,lon_subscale),
-                j_cg(it.multi_index[1]+1,lat_subscale)]
-            if not any(np.isnan((lon1,lat1,lon2,lat2))):
-                _,_,outgrid['DYU'][it.multi_index[0],it.multi_index[1]] = geod.inv(
-                    lon1,lat1,lon2,lat2)
-            it.iternext()
-
-    if verbose:
-        print("outgrid['DYU']:")
-        print(outgrid['DYU'])
-
-    # RAS vertical face area of V cell computed from subcell areas in
-    # compute_areas:
-
-    outgrid['RAS'] = np.empty(((iub-ilb)*lon_subscale,(jub-jlb)*lat_subscale+1))
-    outgrid['RAS'][:,:] = np.nan
-
-    # compute areas partitioning:
-    ca_first_i  = 2*lon_subscale
-    ca_last_i   = incl(ca_first_i + ((iub-ilb)*lon_subscale-1)*2)
-    ca_stride_i = 2
-    ca_first_j  = 2*lat_subscale - 1
-    ca_last_j   = incl(ca_first_j + (jub-jlb)*lat_subscale*2)
-    ca_stride_j = 2
-
-    # transformation from partitioned, strided compute_areas indices (i_n,j_n) to
-    # underlying compute_areas indices:
-    i_ca = lambda i_n,lon_subscale : 2*lon_subscale     + 2*i_n
-    j_ca = lambda j_n,lat_subscale : 2*lat_subscale - 1 + 2*j_n
-
-    it = np.nditer(
-        compute_areas[ca_first_i:ca_last_i:ca_stride_i,ca_first_j:ca_last_j:ca_stride_j],
-        flags=['multi_index'])
-    while not it.finished:
-        outgrid['RAS'][it.multi_index[0],it.multi_index[1]] = \
-            it[0] + \
-            compute_areas[i_ca(it.multi_index[0],lon_subscale)+1,j_ca(it.multi_index[1],lat_subscale)  ] + \
-            compute_areas[i_ca(it.multi_index[0],lon_subscale)+1,j_ca(it.multi_index[1],lat_subscale)+1] + \
-            compute_areas[i_ca(it.multi_index[0],lon_subscale)  ,j_ca(it.multi_index[1],lat_subscale)+1]
-        it.iternext()
-    if verbose:
-        print("outgrid['RAS']:")
-        print(outgrid['RAS'])
-
-    return outgrid, (iub-ilb)*lon_subscale, (jub-jlb)*lat_subscale
+    outgrid = computegrid.tomitgrid( compute_grid_xg, compute_grid_yg,
+        ilb, iub, jlb, jub, geod, verbose)
+
+    return (
+        outgrid,
+        (iub_mitgrid-ilb_mitgrid)*lon_subscale,
+        (jub_mitgrid-jlb_mitgrid)*lat_subscale)
 
 
 def main():

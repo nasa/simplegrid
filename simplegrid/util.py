@@ -145,14 +145,12 @@ def nearest(lon,lat,lons,lats,geod):
     """Determine indices of, and distance to, nearest lon/lat point.
 
     Args:
-        lon (float): Longitude of point from which neighbouring values will be
-            assessed.
-        lat (float): Latitude of point from which neighbouring values will be
-            assessed.
-        lons (numpy 2-d array): Matrix of longitude values from which nearest
-            neighbour will be determined.
-        lats (numpy 2-d array): Matrix of latitude values from which nearest
-            neighbour will be determined.
+        lon (float): Longitude of search origin
+        lat (float): Latitude of search origin
+        lons (numpy 2-d array): Matrix of longitude values used in the nearest
+            neighbour search.
+        lats (numpy 2-d array): Matrix of latitude values used in the nearest
+            neighbour search.
         geod (pyproj.Geod object): Geod to be used as basis for distance
             calculations.
 
