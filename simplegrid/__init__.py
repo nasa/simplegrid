@@ -1,3 +1,4 @@
+from . import addfringe
 from . import computegrid
 from . import gridio
 from . import mitgridfilefields

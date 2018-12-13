@@ -24,6 +24,7 @@ setup(
         'console_scripts': [
             'simplegrid=simplegrid.mkgrid:main',
             'simpleregrid=simplegrid.regrid:main',
+            'addfringe=simplegrid.addfringe:main',
         ],
     },
 )
