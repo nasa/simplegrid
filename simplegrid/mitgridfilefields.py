@@ -2,11 +2,11 @@
 """Attributes that are useful when reading 'packed' binary mitgrid files.
 
 mitgrid files are simply raw streams of binary data without any data field
-separators or record length descriptors. Therefore, to read such a file, one has
-to know the order of the data conventionally appearing in the file, the data
-type, and amount of padding that may have been used when written. For
-simplicity, all matrices are written, and thus read, assuming the same
-dimensions, even if the underlying data are actually smaller.
+separators or record length descriptors. To read such a file, then, one has to
+know the order of the data conventionally appearing in the file, the data type,
+and amount of padding that may have been used when written. For simplicity, all
+matrices are written, and thus read, assuming the same dimensions, even if the
+underlying data are actually smaller.
 
 For example, a nominal 90 x 270 grid may include fields that are actually up to
 91 x 271; an example of the former would be an array of tracer cell center point

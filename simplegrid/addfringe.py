@@ -28,9 +28,9 @@ def create_parser():
         (path and) file name of tile whose data will be used to compute tile 'A'
         boundary grid information (mitgridfile format)""")
     parser.add_argument('--nib', type=int, help="""
-        number of tracer points in model grid 'x' direction for tile b""")
+        number of tracer points in model grid 'x' direction for tile B""")
     parser.add_argument('--njb', type=int, help="""
-        number of tracer points in model grid 'y' direction for tile b""")
+        number of tracer points in model grid 'y' direction for tile B""")
     parser.add_argument('--outfile', help="""
         file to which updated tile 'A' will be written (mitgridfile format)""")
     parser.add_argument('-v','--verbose',action='store_true',help="""
@@ -68,7 +68,8 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
 
     geod = pyproj.Geod(ellps='sphere')
 
-    (tilea_edge_slice, tileb_edge_slice,
+    (tilea_edge, tilea_edge_slice,
+    tileb_edge, tileb_edge_slice,
     compute_grid_edge_xg,compute_grid_edge_yg,
     compute_grid_edge_join_slice) = util.matchedges(
         tilea_mitgrid['XG'], tilea_mitgrid['YG'],
@@ -138,7 +139,7 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
                     tilea_mitgrid[name][it.multi_index[0],it.multi_index[1]]
             it.iternext()
 
-    return new_tilea_mitgrid
+    return (tilea_edge,tileb_edge,new_tilea_mitgrid)
 
 
 def main():

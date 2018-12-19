@@ -3,6 +3,10 @@ import numpy as np
 from . import computegrid
 
 
+# some useful constants:
+edges = (N,S,E,W) = list(range(4))
+
+
 def lonlat2cart( lons, lats, rad=1.):
     """Convert longitude/latitude to cartesian coordinates.
 
@@ -45,14 +49,19 @@ def matchedges( aXG, aYG, bXG, bYG, geod, verbose=False):
         verbose (logical): verbose output
 
     Returns:
-        (a_edge_slice, b_edge_slice,
+        (a_edge, a_edge_slice, b_edge, b_edge_slice,
         compute_grid_edge_xg, compute_grid_edge_yg,
         compute_grid_edge_join_slice):
-            tuple of tile edge slice objects, and interpolated compute edge
-            values and corresponding slice object, that can facilitate tile join
-            and edge value interpolation operations.
+            tuple of tile edge indicators, slice objects, and interpolated
+            compute edge values and corresponding slice object, that can
+            facilitate subsequent tile join and edge value interpolation
+            operations.
+            - a_edge: indicator denoting the matching edge of tile 'A' (N,S,E,
+                or W)
             - a_edge_slice: slice operator on tile 'A' (aXG, aYG) that can be
                 used to produce edge in common with tile 'B'
+            - b_edge: indicator denoting the matching edge of tile 'B' (N,S,E,
+                or W)
             - b_edge_slice: slice operator on tile 'B' (bXG, bYG) that can be
                 used to produce edge in common with tile 'A'. If tiles match
                 exactly, note that aXG[a_edge_slice] = bXG[b_edge_slice] and
@@ -79,8 +88,6 @@ def matchedges( aXG, aYG, bXG, bYG, geod, verbose=False):
     """
 
     # some useful parameters:
-    edges   = (N,S,E,W)     = list(range(4))                # j_n,j_s,i_e,i_w; 2x2 idxs
-    #dges   = (N,S,E,W)     = (1,0,1,0)                     # j_n,j_s,i_e,i_w; 2x2 idxs
     corners = (SW,SE,NE,NW) = (0,0),(-1,0),(-1,-1),(0,-1)   # full matrix idxs
     CLOSE_ENOUGH = 1.e-6                                    # error checking
 
@@ -242,6 +249,7 @@ def matchedges( aXG, aYG, bXG, bYG, geod, verbose=False):
             compute_grid_edge_join_slice = (np.s_[1,-1],np.s_[0])
 
     return (
+        a_edge,b_edge,
         a_edge_slice, b_edge_slice,
         compute_grid_edge_xg, compute_grid_edge_yg,
         compute_grid_edge_join_slice)
