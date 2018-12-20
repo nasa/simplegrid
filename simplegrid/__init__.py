@@ -1,6 +1,7 @@
 from . import addfringe
 from . import computegrid
 from . import gridio
+from . import matchedges
 from . import mitgridfilefields
 from . import mkgrid
 from . import regrid

@@ -5,6 +5,7 @@ import numpy as np
 import pyproj
 from . import computegrid
 from . import gridio
+from . import matchedges
 from . import mitgridfilefields as mgf
 from . import util
 
@@ -60,8 +61,8 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
 
     Returns:
         (tilea_edge,tileb_edge,new_tilea_mitgrid): tuple of tilea and tileb
-            matching edge indicators (ref. util.matchedges return values), and
-            copy of tilea with updated boundary grid data.
+            matching edge indicators (ref. matchedges.matchedges return values),
+            and copy of tilea with updated boundary grid data.
 
     """
 
@@ -73,7 +74,7 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
     (tilea_edge, tilea_edge_slice,
     tileb_edge, tileb_edge_slice,
     compute_grid_edge_xg,compute_grid_edge_yg,
-    compute_grid_edge_join_slice) = util.matchedges(
+    compute_grid_edge_join_slice) = matchedges.matchedges(
         tilea_mitgrid['XG'], tilea_mitgrid['YG'],
         tileb_mitgrid['XG'], tileb_mitgrid['YG'],
         geod, verbose)
