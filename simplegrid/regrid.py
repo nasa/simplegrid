@@ -54,17 +54,13 @@ def create_parser():
     parser.add_argument('--outfile', help="""
         file to which regridded matrices will be written (mitgridfile
         format)""")
-    parser.add_argument('-g','--edge_method',action='store_true',help="""
-        rather than use great circle distance calculations throughout,
-        precompute partial edge lengths (half-cell distances) and sum them as
-        appropriate to produce DX-, and DY- quantities.""")
     parser.add_argument('-v','--verbose',action='store_true',help="""
         verbose output""")
     return parser
 
 
 def regrid( mitgridfile,xg_file,yg_file,ni,nj,
-        lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,edge_method=False,
+        lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,
         verbose=False):
     """Regrids a rectangular lon/lat region using simple great circle-based
     subdivision, preserving any corner grids that may already exist within the
@@ -89,9 +85,6 @@ def regrid( mitgridfile,xg_file,yg_file,ni,nj,
             x-direction cells; int>=1).
         lat_subscale (int): subscale factor to be applied to each cell in the
             model grid 'y' direction (see lon_subscale comments; int>=1).
-        edge_method (bool): True to use precomputed grid lengths (i.e., half
-            cell distances), summing as appropriate to produce DX- and DY-
-            quantities, False to use great circle distances throughout.
         verbose (bool): True for diagnostic output, False otherwise.
 
     Returns:
@@ -299,7 +292,6 @@ def main():
         args.lat2,
         args.lon_subscale,
         args.lat_subscale,
-        args.edge_method,
         args.verbose)
     if args.verbose:
         print('writing {0:s} with ni={1:d}, nj={2:d}...'.
