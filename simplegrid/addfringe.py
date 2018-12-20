@@ -59,7 +59,9 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
         verbose (bool): True for diagnostic output, False otherwise.
 
     Returns:
-        new_tilea_mitgrid: copy of tilea with updated boundary grid data.
+        (tilea_edge,tileb_edge,new_tilea_mitgrid): tuple of tilea and tileb
+            matching edge indicators (ref. util.matchedges return values), and
+            copy of tilea with updated boundary grid data.
 
     """
 

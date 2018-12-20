@@ -102,7 +102,6 @@ def matchedges( aXG, aYG, bXG, bYG, geod, verbose=False):
     a_to_b_dist = np.full((2,2),np.inf)
     b_to_a_dist = a_to_b_dist.copy()
 
-    
     for corner_a in corners:
         for corner_b in corners:
             _,_,dist = geod.inv(
@@ -111,8 +110,15 @@ def matchedges( aXG, aYG, bXG, bYG, geod, verbose=False):
                 # keep track of minimum distances without regard to the actual
                 # corner in b that's closest...:
                 a_to_b_dist[corner_a] = dist
-                # ...and, by reciprocity:
-                b_to_a_dist[corner_b] = a_to_b_dist[corner_a]
+
+    for corner_b in corners:
+        for corner_a in corners:
+            _,_,dist = geod.inv(
+                aXG[corner_a], aYG[corner_a], bXG[corner_b], bYG[corner_b])
+            if dist < b_to_a_dist[corner_b]:
+                # keep track of minimum distances without regard to the actual
+                # corner in a that's closest...:
+                b_to_a_dist[corner_b] = dist
 
     # make sure minimums are sufficently close to zero:
     if np.amin([np.amin(a_to_b_dist),np.amin(b_to_a_dist)]) > nom_diag*CLOSE_ENOUGH:
@@ -120,24 +126,25 @@ def matchedges( aXG, aYG, bXG, bYG, geod, verbose=False):
 
     # edge detection:
 
-    a_to_b_rowmins = np.argmin(a_to_b_dist,axis=0).tolist()
-    a_to_b_colmins = np.argmin(a_to_b_dist,axis=1).tolist()
-    if a_to_b_rowmins == [0,0]:
+    a_to_b_closest = np.less_equal(a_to_b_dist,nom_diag*CLOSE_ENOUGH)
+    b_to_a_closest = np.less_equal(b_to_a_dist,nom_diag*CLOSE_ENOUGH)
+
+    if np.all(a_to_b_closest[0,:]):
         a_edge          = W
         a_edge_slice    = (np.s_[0],np.s_[:])
         if verbose:
             msg = "western edge of tile 'a' "
-    elif a_to_b_rowmins == [1,1]:
+    elif np.all(a_to_b_closest[-1,:]):
         a_edge          = E
         a_edge_slice    = (np.s_[-1],np.s_[:])
         if verbose:
             msg = "eastern edge of tile 'a' "
-    elif a_to_b_colmins == [0,0]:
+    elif np.all(a_to_b_closest[:,0]):
         a_edge          = S
         a_edge_slice    = (np.s_[:],np.s_[0])
         if verbose:
             msg = "southern edge of tile 'a' "
-    elif a_to_b_colmins == [1,1]:
+    elif np.all(a_to_b_closest[:,-1]):
         a_edge          = N
         a_edge_slice    = (np.s_[:],np.s_[-1])
         if verbose:
@@ -145,27 +152,25 @@ def matchedges( aXG, aYG, bXG, bYG, geod, verbose=False):
     else:
         raise ValueError('No matching edge found for first input tile')
 
-    b_to_a_rowmins = np.argmin(b_to_a_dist,axis=0).tolist()
-    b_to_a_colmins = np.argmin(b_to_a_dist,axis=1).tolist()
-    if b_to_a_rowmins == [0,0]:
+    if np.all(b_to_a_closest[0,:]):
         b_edge              = W
         b_edge_slice        = (np.s_[0],np.s_[:])
         b_edge_next_slice   = (np.s_[1],np.s_[:])
         if verbose:
             msg = msg + "matches western edge of tile 'b'"
-    elif b_to_a_rowmins == [1,1]:
+    elif np.all(b_to_a_closest[-1,:]):
         b_edge              = E
         b_edge_slice        = (np.s_[-1],np.s_[:])
         b_edge_next_slice   = (np.s_[-2],np.s_[:])
         if verbose:
             msg = msg + "matches eastern edge of tile 'b'"
-    elif b_to_a_colmins == [0,0]:
+    elif np.all(b_to_a_closest[:,0]):
         b_edge              = S
         b_edge_slice        = (np.s_[:],np.s_[0])
         b_edge_next_slice   = (np.s_[:],np.s_[1])
         if verbose:
             msg = msg + "matches southern edge of tile 'b'"
-    elif b_to_a_colmins == [1,1]:
+    elif np.all(b_to_a_closest[:,-1]):
         b_edge              = N
         b_edge_slice        = (np.s_[:],np.s_[-1])
         b_edge_next_slice   = (np.s_[:],np.s_[-2])
@@ -214,13 +219,13 @@ def matchedges( aXG, aYG, bXG, bYG, geod, verbose=False):
             for i in range(xgyg_rows):
                 compute_grid_xg[2*i,0] = aXG[a_edge_slice][i]
                 compute_grid_yg[2*i,0] = aYG[a_edge_slice][i]
-                compute_grid_yg[2*i,2] = bXG[b_edge_next_slice][i]
+                compute_grid_xg[2*i,2] = bXG[b_edge_next_slice][i]
                 compute_grid_yg[2*i,2] = bYG[b_edge_next_slice][i]
         elif a_edge==S:
             for i in range(xgyg_rows):
                 compute_grid_xg[2*i,2] = aXG[a_edge_slice][i]
                 compute_grid_yg[2*i,2] = aYG[a_edge_slice][i]
-                compute_grid_yg[2*i,0] = bXG[b_edge_next_slice][i]
+                compute_grid_xg[2*i,0] = bXG[b_edge_next_slice][i]
                 compute_grid_yg[2*i,0] = bYG[b_edge_next_slice][i]
 
     # produce subdivided compute grid:
@@ -244,13 +249,13 @@ def matchedges( aXG, aYG, bXG, bYG, geod, verbose=False):
         compute_grid_edge_xg = compute_grid_xg[:,1]
         compute_grid_edge_yg = compute_grid_yg[:,1]
         if a_edge==N:
-            compute_grid_edge_join_slice = (np.s_[1,-1],np.s_[-1])
+            compute_grid_edge_join_slice = (np.s_[1:-1],np.s_[-1])
         elif a_edge==S:
-            compute_grid_edge_join_slice = (np.s_[1,-1],np.s_[0])
+            compute_grid_edge_join_slice = (np.s_[1:-1],np.s_[0])
 
     return (
-        a_edge,b_edge,
-        a_edge_slice, b_edge_slice,
+        a_edge, a_edge_slice,
+        b_edge, b_edge_slice,
         compute_grid_edge_xg, compute_grid_edge_yg,
         compute_grid_edge_join_slice)
 
