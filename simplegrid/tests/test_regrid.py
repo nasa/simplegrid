@@ -10,16 +10,17 @@ class TestRegrid(unittest.TestCase):
         Results are compared against validated mitgrid file created using
         simpleregrid command-line call:
 
+        # (regrid_test_1.sh)
         simpleregrid \
-            --mitgridfile ./data/tile005.mitgrid \
-            --ni 270 \
-            --nj  90 \
-            --lon1 -126.95921008 \
-            --lat1   67.31607921 \
-            --lon2 -126.21154908 \
-            --lat2   67.17736362 \
-            --lon_subscale 1 \
-            --lat_subscale 1 \
+            --mitgridfile tile005.mitgrid   \
+            --ni 270                        \
+            --nj  90                        \
+            --lon1 -126.95921008            \
+            --lat1   67.31607921            \
+            --lon2 -126.21154908            \
+            --lat2   67.17736362            \
+            --lon_subscale 1                \
+            --lat_subscale 1                \
             --outfile regrid_test_1.mitgrid
         """
 
@@ -40,16 +41,17 @@ class TestRegrid(unittest.TestCase):
         Results are compared against validated mitgrid file created using
         simpleregrid command-line call:
 
+        # (regrid_test_2.sh)
         simpleregrid \
-            --mitgridfile ./data/tile005.mitgrid \
-            --ni 270 \
-            --nj  90 \
-            --lon1 -126.95921008 \
-            --lat1   67.31607921 \
-            --lon2 -126.21154908 \
-            --lat2   67.17736362 \
-            --lon_subscale 30 \
-            --lat_subscale 20 \
+            --mitgridfile tile005.mitgrid   \
+            --ni 270                        \
+            --nj  90                        \
+            --lon1 -126.95921008            \
+            --lat1   67.31607921            \
+            --lon2 -126.21154908            \
+            --lat2   67.17736362            \
+            --lon_subscale 30               \
+            --lat_subscale 20               \
             --outfile regrid_test_2.mitgrid
         """
 
@@ -70,16 +72,17 @@ class TestRegrid(unittest.TestCase):
         tile.  Results are compared against validated mitgrid file created using
         simpleregrid command-line call:
 
+        # (regrid_test_3.sh)
         simpleregrid \
-            --mitgridfile ./data/tile005.mitgrid \
-            --ni 270 \
-            --nj  90 \
-            --lon1 -127.73445435 \
-            --lat1   67.56064719 \
-            --lon2 -128.         \
-            --lat2   67.40168504 \
-            --lon_subscale 1 \
-            --lat_subscale 1 \
+            --mitgridfile tile005.mitgrid   \
+            --ni 270                        \
+            --nj  90                        \
+            --lon1 -127.73445435            \
+            --lat1   67.56064719            \
+            --lon2 -128.0                   \
+            --lat2   67.40168504            \
+            --lon_subscale 1                \
+            --lat_subscale 1                \
             --outfile regrid_test_3.mitgrid
         """
 
@@ -101,17 +104,18 @@ class TestRegrid(unittest.TestCase):
         binary input.  Results are compared against validated mitgrid file
         created using simpleregrid command-line call:
 
+        # (regrid_test_4.sh)
         simpleregrid \
-            --xg_file tile005_XG.bin \
-            --yg_file tile005_YG.bin \
-            --ni 270 \
-            --nj  90 \
-            --lon1 -126.95921008 \
-            --lat1   67.31607921 \
-            --lon2 -126.21154908 \
-            --lat2   67.17736362 \
-            --lon_subscale 1 \
-            --lat_subscale 1 \
+            --xg_file tile005_XG.bin        \
+            --yg_file tile005_YG.bin        \
+            --ni 270                        \
+            --nj  90                        \
+            --lon1 -126.95921008            \
+            --lat1   67.31607921            \
+            --lon2 -126.21154908            \
+            --lat2   67.17736362            \
+            --lon_subscale 1                \
+            --lat_subscale 1                \
             --outfile regrid_test_4.mitgrid
         """
 
@@ -133,18 +137,19 @@ class TestRegrid(unittest.TestCase):
         *.csv input.  Results are compared against validated mitgrid file
         created using simpleregrid command-line call:
 
+        # (regrid_test_5.sh)
         simpleregrid \
-            --xg_file tile005_XG.csv \
-            --yg_file tile005_YG.csv \
-            --ni 270 \
-            --nj  90 \
-            --lon1 -126.95921008 \
-            --lat1   67.31607921 \
-            --lon2 -126.21154908 \
-            --lat2   67.17736362 \
-            --lon_subscale 1 \
-            --lat_subscale 1 \
-            --outfile regrid_test_4.mitgrid
+            --xg_file tile005_XG.csv        \
+            --yg_file tile005_YG.csv        \
+            --ni 270                        \
+            --nj  90                        \
+            --lon1 -126.95921008            \
+            --lat1   67.31607921            \
+            --lon2 -126.21154908            \
+            --lat2   67.17736362            \
+            --lon_subscale 1                \
+            --lat_subscale 1                \
+            --outfile regrid_test_5.mitgrid
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
