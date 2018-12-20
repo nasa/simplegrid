@@ -1,11 +1,8 @@
 
 import numpy as np
-from . import computegrid
-
 
 # some useful constants:
 edges = (N,S,E,W) = list(range(4))
-
 
 def lonlat2cart( lons, lats, rad=1.):
     """Convert longitude/latitude to cartesian coordinates.
