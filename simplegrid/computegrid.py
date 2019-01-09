@@ -65,8 +65,10 @@ def edges( compute_grid_xg, compute_grid_yg, geod, verbose=False):
     # initialization can be based on either *_xg or *_yg since they're the same
     # shape:
     (cg_rows,cg_cols) = compute_grid_xg.shape
-    compute_edges_x = np.empty((cg_rows-1,cg_cols  ))*np.nan
-    compute_edges_y = np.empty((cg_rows  ,cg_cols-1))*np.nan
+    compute_edges_x = np.empty((cg_rows-1,cg_cols  ))
+    compute_edges_x[:,:] = np.nan
+    compute_edges_y = np.empty((cg_rows  ,cg_cols-1))
+    compute_edges_y[:,:] = np.nan
 
     # x-direction edge lengths:
 
