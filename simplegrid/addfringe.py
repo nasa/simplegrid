@@ -45,14 +45,14 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
     first ('A').
 
     Args:
-        tilea (str): (path and) filename of tile for which boundary data are to
-            be computed.
+        tilea (str): mitgrid (path and) filename of tile for which boundary data
+            are to be computed.
         nia (int): number of tracer points in the model grid 'x' direction for
             tilea.
         nja (int): number of tracer points in the model grid 'y' direction for
             tilea.
-        tileb (str): (path and) filename of tile that will be used to compute
-            boundary data for tilea.
+        tileb (str): mitgrid (path and) filename of tile that will be used to
+            compute boundary data for tilea.
         nib (int): number of tracer points in the model grid 'x' direction for
             tileb.
         njb (int): number of tracer points in the model grid 'y' direction for
@@ -61,8 +61,13 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
 
     Returns:
         (tilea_edge,tileb_edge,new_tilea_mitgrid): tuple of tilea and tileb
-            matching edge indicators (ref. matchedges.matchedges return values),
+            matching edge indicators (integer 0 (N), 1 (ref. matchedges.matchedges return values),
             and copy of tilea with updated boundary grid data.
+
+        (tilea_edge,tileb_edge,new_tilea_mitgrid): tuple of tilea and tileb
+            matching edge indicators (integer 0(N), 1(S), 2(E) or 3(W)), and
+            copy of tilea (dictionary of named numpy arrays) with updated
+            boundary grid data.
 
     """
 
@@ -156,7 +161,7 @@ def main():
             args.tilea))
         print('using data from {0:s}...'.format(args.tileb))
 
-    (tilea_with_new_boundary) = addfringe(
+    (_,_,tilea_with_new_boundary) = addfringe(
         args.tilea, args.nia, args.nja,
         args.tileb, args.nib, args.njb,
         args.verbose)

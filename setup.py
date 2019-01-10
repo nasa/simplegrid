@@ -22,10 +22,10 @@ setup(
     ],
     entry_points = {
         'console_scripts': [
-            'addfringe      = simplegrid.addfringe:main',
-            'simplegrid     = simplegrid.mkgrid:main',
-            'simpleregrid   = simplegrid.regrid:main',
-            'stitch         = simplegrid.stitch:main',
+            'sgaddfringe    = simplegrid.addfringe:main',
+            'sgmkgrid       = simplegrid.mkgrid:main',
+            'sgregrid       = simplegrid.regrid:main',
+            'sgstitch       = simplegrid.stitch:main',
         ],
     },
 )
