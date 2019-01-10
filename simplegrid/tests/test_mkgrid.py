@@ -10,13 +10,13 @@ class TestMkgrid(unittest.TestCase):
         Results are compared against mitgrid file created using simplegrid
         command-line call:
 
-        simplegrid \
-            --lon1 1. \
-            --lat1 2. \
-            --lon2 2. \
-            --lat2 1. \
-            --lon_subscale 1 \
-            --lat_subscale 1 \
+        sgmkgrid                            \\
+            --lon1 1.                       \\
+            --lat1 2.                       \\
+            --lon2 2.                       \\
+            --lat2 1.                       \\
+            --lon_subscale 1                \\
+            --lat_subscale 1                \\
             --outfile mkgrid_test_1.mitgrid
 
         """
@@ -38,13 +38,13 @@ class TestMkgrid(unittest.TestCase):
         Results are compared against mitgrid file created using simplegrid
         command-line call:
 
-        simplegrid \
-            --lon1 1. \
-            --lat1 2. \
-            --lon2 2. \
-            --lat2 1. \
-            --lon_subscale 3 \
-            --lat_subscale 3 \
+        sgmkgrid                            \\
+            --lon1 1.                       \\
+            --lat1 2.                       \\
+            --lon2 2.                       \\
+            --lat2 1.                       \\
+            --lon_subscale 3                \\
+            --lat_subscale 3                \\
             --outfile mkgrid_test_2.mitgrid
 
         """

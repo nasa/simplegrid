@@ -8,19 +8,19 @@ class TestRegrid(unittest.TestCase):
     def test_regrid_1(self):
         """ Tests 1x1 'remeshing' of a 1x1 cell from an llc 90 model tile.
         Results are compared against validated mitgrid file created using
-        simpleregrid command-line call:
+        sgregrid command-line call:
 
         # (regrid_test_1.sh)
-        simpleregrid \
-            --mitgridfile tile005.mitgrid   \
-            --ni 270                        \
-            --nj  90                        \
-            --lon1 -126.95921008            \
-            --lat1   67.31607921            \
-            --lon2 -126.21154908            \
-            --lat2   67.17736362            \
-            --lon_subscale 1                \
-            --lat_subscale 1                \
+        sgregrid                            \\
+            --mitgridfile tile005.mitgrid   \\
+            --ni 270                        \\
+            --nj  90                        \\
+            --lon1 -126.95921008            \\
+            --lat1   67.31607921            \\
+            --lon2 -126.21154908            \\
+            --lat2   67.17736362            \\
+            --lon_subscale 1                \\
+            --lat_subscale 1                \\
             --outfile regrid_test_1.mitgrid
         """
 
@@ -39,19 +39,19 @@ class TestRegrid(unittest.TestCase):
     def test_regrid_2(self):
         """ Tests 30x20 remeshing of a 1x1 cell from an llc 90 model tile.
         Results are compared against validated mitgrid file created using
-        simpleregrid command-line call:
+        sgregrid command-line call:
 
         # (regrid_test_2.sh)
-        simpleregrid \
-            --mitgridfile tile005.mitgrid   \
-            --ni 270                        \
-            --nj  90                        \
-            --lon1 -126.95921008            \
-            --lat1   67.31607921            \
-            --lon2 -126.21154908            \
-            --lat2   67.17736362            \
-            --lon_subscale 30               \
-            --lat_subscale 20               \
+        sgregrid                            \\
+            --mitgridfile tile005.mitgrid   \\
+            --ni 270                        \\
+            --nj  90                        \\
+            --lon1 -126.95921008            \\
+            --lat1   67.31607921            \\
+            --lon2 -126.21154908            \\
+            --lat2   67.17736362            \\
+            --lon_subscale 30               \\
+            --lat_subscale 20               \\
             --outfile regrid_test_2.mitgrid
         """
 
@@ -70,19 +70,19 @@ class TestRegrid(unittest.TestCase):
     def test_regrid_3(self):
         """ Tests 1x1 'remeshing' of a 1x1 corner cell from an llc 90 model
         tile.  Results are compared against validated mitgrid file created using
-        simpleregrid command-line call:
+        sgregrid command-line call:
 
         # (regrid_test_3.sh)
-        simpleregrid \
-            --mitgridfile tile005.mitgrid   \
-            --ni 270                        \
-            --nj  90                        \
-            --lon1 -127.73445435            \
-            --lat1   67.56064719            \
-            --lon2 -128.0                   \
-            --lat2   67.40168504            \
-            --lon_subscale 1                \
-            --lat_subscale 1                \
+        sgregrid                            \\
+            --mitgridfile tile005.mitgrid   \\
+            --ni 270                        \\
+            --nj  90                        \\
+            --lon1 -127.73445435            \\
+            --lat1   67.56064719            \\
+            --lon2 -128.0                   \\
+            --lat2   67.40168504            \\
+            --lon_subscale 1                \\
+            --lat_subscale 1                \\
             --outfile regrid_test_3.mitgrid
         """
 
@@ -102,20 +102,20 @@ class TestRegrid(unittest.TestCase):
         """ Tests 1x1 'remeshing' of a 1x1 cell from an llc 90 model tile.
         Similar to test_regrid_1, but uses --xg_file, --yg_file option with
         binary input.  Results are compared against validated mitgrid file
-        created using simpleregrid command-line call:
+        created using sgregrid command-line call:
 
         # (regrid_test_4.sh)
-        simpleregrid \
-            --xg_file tile005_XG.bin        \
-            --yg_file tile005_YG.bin        \
-            --ni 270                        \
-            --nj  90                        \
-            --lon1 -126.95921008            \
-            --lat1   67.31607921            \
-            --lon2 -126.21154908            \
-            --lat2   67.17736362            \
-            --lon_subscale 1                \
-            --lat_subscale 1                \
+        sgregrid                            \\
+            --xg_file tile005_XG.bin        \\
+            --yg_file tile005_YG.bin        \\
+            --ni 270                        \\
+            --nj  90                        \\
+            --lon1 -126.95921008            \\
+            --lat1   67.31607921            \\
+            --lon2 -126.21154908            \\
+            --lat2   67.17736362            \\
+            --lon_subscale 1                \\
+            --lat_subscale 1                \\
             --outfile regrid_test_4.mitgrid
         """
 
@@ -135,20 +135,20 @@ class TestRegrid(unittest.TestCase):
         """ Tests 1x1 'remeshing' of a 1x1 cell from an llc 90 model tile.
         Similar to test_regrid_4, but uses --xg_file, --yg_file option with
         *.csv input.  Results are compared against validated mitgrid file
-        created using simpleregrid command-line call:
+        created using sgregrid command-line call:
 
         # (regrid_test_5.sh)
-        simpleregrid \
-            --xg_file tile005_XG.csv        \
-            --yg_file tile005_YG.csv        \
-            --ni 270                        \
-            --nj  90                        \
-            --lon1 -126.95921008            \
-            --lat1   67.31607921            \
-            --lon2 -126.21154908            \
-            --lat2   67.17736362            \
-            --lon_subscale 1                \
-            --lat_subscale 1                \
+        sgregrid                            \\
+            --xg_file tile005_XG.csv        \\
+            --yg_file tile005_YG.csv        \\
+            --ni 270                        \\
+            --nj  90                        \\
+            --lon1 -126.95921008            \\
+            --lat1   67.31607921            \\
+            --lon2 -126.21154908            \\
+            --lat2   67.17736362            \\
+            --lon_subscale 1                \\
+            --lat_subscale 1                \\
             --outfile regrid_test_5.mitgrid
         """
 
