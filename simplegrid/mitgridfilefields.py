@@ -33,5 +33,10 @@ ni_delta_sizes = (
 nj_delta_sizes = (
    0,    0,    0,    0,    0,    1,    1,    1,    1,    1,    0,    1,    0,    1,    1,    0 )
 
-datatype = '>f8'
+endianness = '>'        # big
+precision_bytes  = '8'  # double
+type = 'f'              # float
+order = 'F'             # fortran
+
+datatype = endianness + type + precision_bytes
 
