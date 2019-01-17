@@ -34,7 +34,7 @@ class TestMkgrid(unittest.TestCase):
         
 
     def test_mkgrid_2(self):
-        """Tests creation of simple 3x3 grid on 1deg x 1deg region.
+        """Tests creation of simple 10x10 grid on 1deg x 1deg region.
         Results are compared against mitgrid file created using simplegrid
         command-line call:
 
@@ -43,8 +43,8 @@ class TestMkgrid(unittest.TestCase):
             --lat1 2.                       \\
             --lon2 2.                       \\
             --lat2 1.                       \\
-            --lon_subscale 3                \\
-            --lat_subscale 3                \\
+            --lon_subscale 10               \\
+            --lat_subscale 10               \\
             --outfile mkgrid_test_2.mitgrid
 
         """
@@ -52,9 +52,9 @@ class TestMkgrid(unittest.TestCase):
         (newgrid,newgrid_ni,newgrid_nj) = sg.mkgrid.mkgrid(
             lon1=1., lat1=2.,
             lon2=2., lat2=1.,
-            lon_subscale=3, lat_subscale=3)
+            lon_subscale=10, lat_subscale=10)
 
-        validated_grid = sg.gridio.read_mitgridfile('./data/mkgrid_test_2.mitgrid',3,3)
+        validated_grid = sg.gridio.read_mitgridfile('./data/mkgrid_test_2.mitgrid',10,10)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(newgrid,validated_grid):
