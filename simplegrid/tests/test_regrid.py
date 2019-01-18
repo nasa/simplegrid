@@ -25,9 +25,10 @@ class TestRegrid(unittest.TestCase):
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
-            './data/tile005.mitgrid', None, None, 270, 90,
-            -126.959, 67.316, -126.212, 67.177,
-            1, 1)
+            mitgridfile='./data/tile005.mitgrid',
+            ni=270, nj=90,
+            lon1=-126.959, lat1=67.316, lon2=-126.212, lat2=67.177,
+            lon_subscale=1, lat_subscale=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/regrid_test_1.mitgrid',1,1)
@@ -57,9 +58,11 @@ class TestRegrid(unittest.TestCase):
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
-            './data/tile005.mitgrid', None, None, 270, 90,
-            -126.95921008, 67.31607921, -126.21154908, 67.17736362,
-            30, 20)
+            mitgridfile='./data/tile005.mitgrid',
+            ni=270, nj=90,
+            lon1=-126.95921008, lat1=67.31607921,
+            lon2=-126.21154908, lat2=67.17736362,
+            lon_subscale=30, lat_subscale=20)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/regrid_test_2.mitgrid',30,20)
@@ -89,9 +92,11 @@ class TestRegrid(unittest.TestCase):
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
-            './data/tile005.mitgrid', None, None, 270, 90,
-            -127.73445435,67.56064719,-128.,67.40168504,
-            1, 1)
+            mitgridfile='./data/tile005.mitgrid',
+            ni=270, nj=90,
+            lon1=-127.73445435, lat1=67.56064719,
+            lon2=-128., lat2=67.40168504,
+            lon_subscale=1, lat_subscale=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/regrid_test_3.mitgrid',1,1)
@@ -120,9 +125,11 @@ class TestRegrid(unittest.TestCase):
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
-            './data/tile005.mitgrid', None, None, 270, 90,
-            -127.73445435,67.56064719,-128.,67.40168504,
-            10, 10)
+            mitgridfile='./data/tile005.mitgrid',
+            ni=270, nj=90,
+            lon1=-127.73445435, lat1=67.56064719,
+            lon2=-128., lat2=67.40168504,
+            lon_subscale=10, lat_subscale=10)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/regrid_test_4.mitgrid',10,10)
@@ -153,9 +160,10 @@ class TestRegrid(unittest.TestCase):
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
-            None, './data/tile005_XG.bin', './data/tile005_YG.bin', 270, 90,
-            -126.959, 67.316, -126.212, 67.177,
-            1, 1)
+            xg_file='./data/tile005_XG.bin', yg_file='./data/tile005_YG.bin',
+            ni=270, nj=90,
+            lon1=-126.959, lat1=67.316, lon2=-126.212, lat2=67.177,
+            lon_subscale=1, lat_subscale=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/regrid_test_5.mitgrid',1,1)
@@ -186,9 +194,10 @@ class TestRegrid(unittest.TestCase):
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
-            None, './data/tile005_XG.csv', './data/tile005_YG.csv', 270, 90,
-            -126.959, 67.316, -126.212, 67.177,
-            1, 1)
+            xg_file='./data/tile005_XG.csv', yg_file='./data/tile005_YG.csv',
+            ni=270, nj=90,
+            lon1=-126.959, lat1=67.316, lon2=-126.212, lat2=67.177,
+            lon_subscale=1, lat_subscale=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/regrid_test_6.mitgrid',1,1)

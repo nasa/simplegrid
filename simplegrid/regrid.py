@@ -59,33 +59,37 @@ def create_parser():
     return parser
 
 
-def regrid( mitgridfile,xg_file,yg_file,ni,nj,
-        lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,
-        verbose=False):
+def regrid( verbose=False, **kwargs):
     """Regrids a rectangular lon/lat region using simple great circle-based
     subdivision, preserving any corner grids that may already exist within the
     region. A normal spherical geoid is currently assumed.
 
     Args:
-        mitgridfile (str): (path and) filename of data to be regridded.
-        xg_file (str): xg (path and) file input alternative to mitgridfile (csv
-            if .csv extension (one matrix row per line), double-precision
-            column-ordered binary otherwise; --yg_file must also be
-            provided).
-        yg_file (str): yg (path and) file input alternative to mitgridfile (see
-            --xg_file comments)
-        ni (int): number of tracer points in the model grid 'x' direction.
-        nj (int): number of tracer points in the model grid 'y' direction.
-        lon1 (float): longitude of northwest corner point.
-        lat1 (float): latitude of northwest corner point.
-        lon2 (float): longitude of southeast corner point.
-        lat2 (float): latitude of southeast corner point.
-        lon_subscale (int): subscale factor to be applied to each cell in the
-            model grid 'x' direction (e.g., '2' doubles the number of
+        verbose (bool, optional): True for diagnostic output, False otherwise.
+        **kwargs: Arbitrary keyword arguments.
+
+    Kwargs:
+        mitgridfile (str, required if no xg_file, yg_file): (path and) filename
+            of data to be regridded.
+        xg_file (str, required if no mitgridfile): xg (path and) file input
+            alternative to mitgridfile (csv if .csv extension (one matrix row
+            per line), double-precision column-ordered binary otherwise; yg_file
+            must also be provided).
+        yg_file (str, required if no mitgridfile): yg (path and) file input
+            alternative to mitgridfile (see xg_file comments)
+        ni (int, required): number of tracer points in the model grid 'x'
+            direction.
+        nj (int, required): number of tracer points in the model grid 'y'
+            direction.
+        lon1 (float, required): longitude of northwest corner point.
+        lat1 (float, required): latitude of northwest corner point.
+        lon2 (float, required): longitude of southeast corner point.
+        lat2 (float, required): latitude of southeast corner point.
+        lon_subscale (int, required): subscale factor to be applied to each cell
+            in the model grid 'x' direction (e.g., '2' doubles the number of
             x-direction cells; int>=1).
-        lat_subscale (int): subscale factor to be applied to each cell in the
-            model grid 'y' direction (see lon_subscale comments; int>=1).
-        verbose (bool): True for diagnostic output, False otherwise.
+        lat_subscale (int, required): subscale factor to be applied to each cell
+            in the model grid 'y' direction (see lon_subscale comments; int>=1).
 
     Returns:
         (newgrid,newgrid_ni,newgrid_nj): Tuple consisting of dictionary of
@@ -97,7 +101,21 @@ def regrid( mitgridfile,xg_file,yg_file,ni,nj,
         northwest/southeast corners, or diagonal corners provided simply for
         orientation purposes. Either way, the output grid will be aligned such
         that 'northwest' is at min i, max j, and 'southeast' is at max i, min j.
+
     """
+
+    # kwarg handling:
+    mitgridfile     = kwargs.get('mitgridfile')
+    xg_file         = kwargs.get('xg_file')
+    yg_file         = kwargs.get('yg_file')
+    ni              = kwargs.get('ni')
+    nj              = kwargs.get('nj')
+    lon1            = kwargs.get('lon1')
+    lat1            = kwargs.get('lat1')
+    lon2            = kwargs.get('lon2')
+    lat2            = kwargs.get('lat2')
+    lon_subscale    = kwargs.get('lon_subscale')
+    lat_subscale    = kwargs.get('lat_subscale')
 
     # read XG, YG data from source provided:
     if mitgridfile:
