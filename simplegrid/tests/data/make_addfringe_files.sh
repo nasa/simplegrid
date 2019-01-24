@@ -1,92 +1,92 @@
 #!/bin/bash
 
 # for reference, command-line invocations used to generate validated grid files
-# used in ../test_stitch.py (note: tiles used in these operations were generated
+# used in ../test_addfringe.py (note: tiles used in these operations were generated
 # by ./make_fringe_and_stitch_infiles.sh)
 
 
 # 1x1 tile tests:
 
-# test_stitch_1:
-sgstitch                                \
+# test_addfringe_1:
+sgaddfringe                             \
   --tilea tile_A_1x1.mitgrid            \
   --nia 1                               \
   --nja 1                               \
   --tileb tile_B_E_1x1.mitgrid          \
   --nib 1                               \
   --njb 1                               \
-  --outfile stitch_AB_EW_2x1.mitgrid
+  --outfile addfringe_A_EW_1x1.mitgrid
 
-# test_stitch_2:
-sgstitch                                \
+# test_addfringe_2:
+sgaddfringe                             \
   --tilea tile_A_1x1.mitgrid            \
   --nia 1                               \
   --nja 1                               \
   --tileb tile_B_N_1x1.mitgrid          \
   --nib 1                               \
   --njb 1                               \
-  --outfile stitch_AB_NS_1x2.mitgrid
+  --outfile addfringe_A_NS_1x1.mitgrid
 
-# test_stitch_3:
-sgstitch                                \
+# test_addfringe_3:
+sgaddfringe                             \
   --tilea tile_A_1x1.mitgrid            \
   --nia 1                               \
   --nja 1                               \
   --tileb tile_B_W_1x1.mitgrid          \
   --nib 1                               \
   --njb 1                               \
-  --outfile stitch_AB_WE_2x1.mitgrid
+  --outfile addfringe_A_WE_1x1.mitgrid
 
-# test_stitch_4:
-sgstitch                                \
+# test_addfringe_4:
+sgaddfringe                             \
   --tilea tile_A_1x1.mitgrid            \
   --nia 1                               \
   --nja 1                               \
   --tileb tile_B_S_1x1.mitgrid          \
   --nib 1                               \
   --njb 1                               \
-  --outfile stitch_AB_SN_1x2.mitgrid
+  --outfile addfringe_A_SN_1x1.mitgrid
 
 
 # 2x2 tile tests:
 
-# test_stitch_5:
-sgstitch                                \
+# test_addfringe_5:
+sgaddfringe                             \
   --tilea tile_A_2x2.mitgrid            \
   --nia 2                               \
   --nja 2                               \
   --tileb tile_B_E_2x2.mitgrid          \
   --nib 2                               \
   --njb 2                               \
-  --outfile stitch_AB_EW_4x2.mitgrid
+  --outfile addfringe_A_EW_2x2.mitgrid
 
-# test_stitch_6:
-sgstitch                                \
+# test_addfringe_6:
+sgaddfringe                             \
   --tilea tile_A_2x2.mitgrid            \
   --nia 2                               \
   --nja 2                               \
   --tileb tile_B_N_2x2.mitgrid          \
   --nib 2                               \
   --njb 2                               \
-  --outfile stitch_AB_NS_2x4.mitgrid
+  --outfile addfringe_A_NS_2x2.mitgrid
 
-# test_stitch_7:
-sgstitch                                \
+# test_addfringe_7:
+sgaddfringe                             \
   --tilea tile_A_2x2.mitgrid            \
   --nia 2                               \
   --nja 2                               \
   --tileb tile_B_W_2x2.mitgrid          \
   --nib 2                               \
   --njb 2                               \
-  --outfile stitch_AB_WE_4x2.mitgrid
+  --outfile addfringe_A_WE_2x2.mitgrid
 
-# test_stitch_8:
-sgstitch                                \
+# test_addfringe_8:
+sgaddfringe                             \
   --tilea tile_A_2x2.mitgrid            \
   --nia 2                               \
   --nja 2                               \
   --tileb tile_B_S_2x2.mitgrid          \
   --nib 2                               \
   --njb 2                               \
-  --outfile stitch_AB_SN_2x4.mitgrid
+  --outfile addfringe_A_SN_2x2.mitgrid
 

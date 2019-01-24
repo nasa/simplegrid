@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# command-line invocations to generate grid files used in ../test_regrid.py
+# for reference, command-line invocations used to generate validated grid files
+# used in ../test_regrid.py:
 
+# test_regrid_1:
 sgregrid \
     --mitgridfile tile005.mitgrid   \
     --ni 270                        \
@@ -14,6 +16,7 @@ sgregrid \
     --lat_subscale 1                \
     --outfile regrid_test_1.mitgrid
 
+# test_regrid_2:
 sgregrid \
     --mitgridfile tile005.mitgrid   \
     --ni 270                        \
@@ -26,6 +29,7 @@ sgregrid \
     --lat_subscale 20               \
     --outfile regrid_test_2.mitgrid
 
+# test_regrid_3:
 sgregrid \
     --mitgridfile tile005.mitgrid   \
     --ni 270                        \
@@ -38,6 +42,7 @@ sgregrid \
     --lat_subscale 1                \
     --outfile regrid_test_3.mitgrid
 
+# test_regrid_4:
 sgregrid \
     --mitgridfile tile005.mitgrid   \
     --ni 270                        \
@@ -50,6 +55,7 @@ sgregrid \
     --lat_subscale 10               \
     --outfile regrid_test_4.mitgrid
 
+# test_regrid_5:
 sgregrid \
     --xg_file tile005_XG.bin        \
     --yg_file tile005_YG.bin        \
@@ -63,6 +69,7 @@ sgregrid \
     --lat_subscale 1                \
     --outfile regrid_test_5.mitgrid
 
+# test_regrid_6:
 sgregrid \
     --xg_file tile005_XG.csv        \
     --yg_file tile005_YG.csv        \

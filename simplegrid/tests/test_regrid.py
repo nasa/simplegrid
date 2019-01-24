@@ -10,7 +10,6 @@ class TestRegrid(unittest.TestCase):
         Results are compared against validated mitgrid file created using
         sgregrid command-line call:
 
-        # (regrid_test_1.sh)
         sgregrid                            \\
             --mitgridfile tile005.mitgrid   \\
             --ni 270                        \\
@@ -43,7 +42,6 @@ class TestRegrid(unittest.TestCase):
         Results are compared against validated mitgrid file created using
         sgregrid command-line call:
 
-        # (regrid_test_2.sh)
         sgregrid                            \\
             --mitgridfile tile005.mitgrid   \\
             --ni 270                        \\
@@ -77,7 +75,6 @@ class TestRegrid(unittest.TestCase):
         tile.  Results are compared against validated mitgrid file created using
         sgregrid command-line call:
 
-        # (regrid_test_3.sh)
         sgregrid                            \\
             --mitgridfile tile005.mitgrid   \\
             --ni 270                        \\

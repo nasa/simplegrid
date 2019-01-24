@@ -61,10 +61,6 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
 
     Returns:
         (tilea_edge,tileb_edge,new_tilea_mitgrid): tuple of tilea and tileb
-            matching edge indicators (integer 0 (N), 1 (ref. matchedges.matchedges return values),
-            and copy of tilea with updated boundary grid data.
-
-        (tilea_edge,tileb_edge,new_tilea_mitgrid): tuple of tilea and tileb
             matching edge indicators (integer 0(N), 1(S), 2(E) or 3(W)), and
             copy of tilea (dictionary of named numpy arrays) with updated
             boundary grid data.

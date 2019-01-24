@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# command-line invocations to generate grid files used in ../test_mkgrid.py
+# for reference, command-line invocations used to generate validated grid files
+# used in ../test_mkgrid.py:
 
+# test_mkgrid_1:
 sgmkgrid                            \
     --lon1 1.                       \
     --lat1 2.                       \
@@ -11,6 +13,7 @@ sgmkgrid                            \
     --lat_subscale 1                \
     --outfile mkgrid_test_1.mitgrid
 
+# test_mkgrid_2:
 sgmkgrid                            \
     --lon1 1.                       \
     --lat1 2.                       \
