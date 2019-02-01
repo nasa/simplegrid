@@ -57,8 +57,9 @@ def stitch(tilea_file,nia,nja,tileb_file,nib,njb,verbose=False):
         verbose (bool): True for diagnostic output, False otherwise.
 
     Returns:
-        (c,nic,njc): combined tile and corresponding tracer point counts in the
-            combined model grid 'x' and 'y' directions.
+        (c,nic,njc): combined tile (mitgrid dictionary of named numpy arrays)
+            and corresponding tracer point counts in the combined model grid 'x'
+            and 'y' directions.
 
     """
 

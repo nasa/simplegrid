@@ -62,8 +62,8 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
     Returns:
         (tilea_edge,tileb_edge,new_tilea_mitgrid): tuple of tilea and tileb
             matching edge indicators (integer 0(N), 1(S), 2(E) or 3(W)), and
-            copy of tilea (dictionary of named numpy arrays) with updated
-            boundary grid data.
+            copy of tilea (mitgrid dictionary of named numpy arrays) with
+            updated boundary grid data.
 
     """
 
@@ -83,8 +83,8 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
     # possible future checks for tilea_edge, tileb_edge coincidence/averaging...
 
     # recompute (regrid) tile 'a', augmenting the compute grid with matching
-    # edge data from tile 'b'.  terms that had prevously been NaNs define the
-    # set of updates to tile 'a'.
+    # edge data from tile 'b'.  terms that had prevously been identical zeros
+    # define the set of updates to tile 'a'.
 
     # compute grid initialization, allocation (ref. regrid(), with
     # lon_subscale=lat_subscale=1):
@@ -98,11 +98,8 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
     jUB = jub + 1
     cg_rows = iUB + 1
     cg_cols = jUB + 1
-    compute_grid_xg = np.empty((cg_rows,cg_cols))
-    compute_grid_xg[:,:] = np.nan
-    compute_grid_yg = np.empty((cg_rows,cg_cols))
-    compute_grid_yg[:,:] = np.nan
-    # index transformation from partitioned grid space to compute grid space:
+    compute_grid_xg = np.zeros((cg_rows,cg_cols))
+    compute_grid_yg = np.zeros((cg_rows,cg_cols))
     i_cg = lambda i_mitgrid : 1 + 2*i_mitgrid
     j_cg = lambda j_mitgrid : 1 + 2*j_mitgrid
     it = np.nditer(
@@ -126,9 +123,11 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
         lon_subscale, lat_subscale, geod, verbose)
 
     new_tilea_mitgrid = computegrid.tomitgrid(
-        compute_grid_xg, compute_grid_yg, ilb, iub, jlb, jub, geod, verbose)
+        compute_grid_xg, compute_grid_yg,
+        iLB, ilb, iub, iUB, jLB, jlb, jub, jUB,
+        geod, verbose)
 
-    # compare tilea with new_tilea, replacing NaNs in the former with updated
+    # compare tilea with new_tilea, replacing zeros in the former with updated
     # values from the latter (actually performed somewhat in the reverse, so we
     # can return new_tilea merged with tilea computed values):
 
@@ -138,7 +137,7 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
              flags=['multi_index'],
              op_flags=['readwrite'])
         while not it.finished:
-            if not np.isnan(it[0]):
+            if np.PZERO!=it[0]:
                 new_tilea_mitgrid[name][it.multi_index[0],it.multi_index[1]] = \
                     tilea_mitgrid[name][it.multi_index[0],it.multi_index[1]]
             it.iternext()

@@ -1,17 +1,24 @@
 
 import numpy as np
 import pyproj
+from . import config
 from . import util
 from . import mitgridfilefields
 
-def areas( compute_grid_xg, compute_grid_yg, geod, verbose=False):
-    """Using spherical geoid assumption, compute sub-areas for the compute grid.
+def areas( compute_grid_xg, compute_grid_yg,
+    compute_grid_edges_x, compute_grid_edges_y, geod, verbose=False):
+    """
+    Compute sub-areas for the compute grid.
 
     Args:
         compute_grid_xg, compute_grid_yg (numpy arrays): Arrays which have been
             dimensioned according to lon_subscale*2 and lat_subscale*2 (possibly
             with "boundary ring" of elements, depending on the application), and
             with (x,y) values filled in according to cgfill().
+        compute_grid_edges_x, compute_grid_edges_y (numpy arrays): Arrays of
+            grid edge lengths (as computed by edge()), used to determine whether
+            a planar or a spherical surface approximation should be used for
+            areas.
         geod (pyproj.Geod): current geoid instance (only the semi-major, or
             equatorial axis radius, geod.a is used here).
         verbose (logical): verbose output
@@ -19,24 +26,32 @@ def areas( compute_grid_xg, compute_grid_yg, geod, verbose=False):
     Returns:
         compute_areas: numpy array of sub-areas for the compute grid.
 
-    Note:
-        If any of the grid corner points are undefined (NaN), the corresponding
-        area will also be undefined.
-
     """
 
-    compute_areas = util.squad_uarea(
-        util.lonlat2cart(compute_grid_xg,compute_grid_yg)) \
-        * np.power(geod.a,2)
+    x_edge_mean = compute_grid_edges_x[compute_grid_edges_x.nonzero()].mean()
+    y_edge_mean = compute_grid_edges_y[compute_grid_edges_y.nonzero()].mean()
+
+    if  x_edge_mean<config.PLANAR_SPHER_TRANSITION and \
+        y_edge_mean<config.PLANAR_SPHER_TRANSITION:
+        # areas are nearly planar; use flat faceted surface approximation:
+        compute_areas = util.pquad_uarea(
+            util.lonlat2cart(compute_grid_xg,compute_grid_yg)) \
+            * np.power(geod.a,2)
+    else:
+        # areas are surface triangles; use spherical excess formulation:
+        compute_areas = util.squad_uarea(
+            util.lonlat2cart(compute_grid_xg,compute_grid_yg)) \
+            * np.power(geod.a,2)
 
     if verbose:
-        print('compute_areas:')
+        print('compute_areas nonzero subset:')
         print(compute_areas)
 
     return compute_areas
 
 
-def edges( compute_grid_xg, compute_grid_yg, geod, verbose=False):
+def edges( compute_grid_xg, compute_grid_yg,
+    ilb, iub, jlb, jub, geod, verbose=False):
     """
     Use great circle arcs to compute distances between all compute_grid points
 
@@ -45,6 +60,10 @@ def edges( compute_grid_xg, compute_grid_yg, geod, verbose=False):
             dimensioned according to lon_subscale*2 and lat_subscale*2 (possibly
             with "boundary ring" of elements, depending on the application), and
             with (x,y) values filled in according to cgfill().
+        ilb, iub, jlb, jub (ints): row (i) and column (j) lower and upper index
+            bounds that define compute_grid_xg and compute_grid_yg range for
+            edge calculations (avoids referenct to zero boundary values during
+            length calculations).
         geod (pyproj.Geod): current geoid instance (only the semi-major, or
             equatorial axis radius, geod.a is used here).
         verbose (logical): verbose output
@@ -55,46 +74,36 @@ def edges( compute_grid_xg, compute_grid_yg, geod, verbose=False):
         compute_grid_y (i,j) to (i+1,j) and compute_edges_y(i,j) contains the
         edge length from compute_grid_x / compute_grid_y (i,j) to (i,j+1)
 
-    Note:
-        If either of the grid corner points is undefined (NaN), the
-        corresponding edge length will also be undefined.
-
     """
-
 
     # initialization can be based on either *_xg or *_yg since they're the same
     # shape:
     (cg_rows,cg_cols) = compute_grid_xg.shape
-    compute_edges_x = np.empty((cg_rows-1,cg_cols  ))
-    compute_edges_x[:,:] = np.nan
-    compute_edges_y = np.empty((cg_rows  ,cg_cols-1))
-    compute_edges_y[:,:] = np.nan
+    compute_edges_x = np.zeros((cg_rows-1,cg_cols  ))
+    compute_edges_y = np.zeros((cg_rows  ,cg_cols-1))
+
+    # since matrix slice operations are from start:(stop-1):stride, define a
+    # lambda function to make it clear when the stop point should be inclusive,
+    # i.e., start:incl(stop):stride
+    incl = lambda idx : idx+1
 
     # x-direction edge lengths:
-
-    it = np.nditer(compute_edges_x,flags=['multi_index'],op_flags=['readwrite'])
-    while not it.finished:
-        lon1 = compute_grid_xg[it.multi_index[0]  ,it.multi_index[1]  ]
-        lat1 = compute_grid_yg[it.multi_index[0]  ,it.multi_index[1]  ]
-        lon2 = compute_grid_xg[it.multi_index[0]+1,it.multi_index[1]  ]
-        lat2 = compute_grid_yg[it.multi_index[0]+1,it.multi_index[1]  ]
-        if not any(np.isnan((lon1,lat1,lon2,lat2))):
-            _,_,compute_edges_x[it.multi_index[0],it.multi_index[1]] = geod.inv(
-                lon1,lat1,lon2,lat2)
-        it.iternext()
+    for i in range(ilb,iub):
+        for j in range(jlb,incl(jub)):
+            lon1 = compute_grid_xg[i  ,j]
+            lat1 = compute_grid_yg[i  ,j]
+            lon2 = compute_grid_xg[i+1,j]
+            lat2 = compute_grid_yg[i+1,j]
+            _,_,compute_edges_x[i,j] = geod.inv( lon1,lat1,lon2,lat2)
 
     # y-direction edge lengths:
-
-    it = np.nditer(compute_edges_y,flags=['multi_index'],op_flags=['readwrite'])
-    while not it.finished:
-        lon1 = compute_grid_xg[it.multi_index[0]  ,it.multi_index[1]  ]
-        lat1 = compute_grid_yg[it.multi_index[0]  ,it.multi_index[1]  ]
-        lon2 = compute_grid_xg[it.multi_index[0]  ,it.multi_index[1]+1]
-        lat2 = compute_grid_yg[it.multi_index[0]  ,it.multi_index[1]+1]
-        if not any(np.isnan((lon1,lat1,lon2,lat2))):
-            _,_,compute_edges_y[it.multi_index[0],it.multi_index[1]] = geod.inv(
-                lon1,lat1,lon2,lat2)
-        it.iternext()
+    for i in range(ilb,incl(iub)):
+        for j in range(jlb,jub):
+            lon1 = compute_grid_xg[i,j  ]
+            lat1 = compute_grid_yg[i,j  ]
+            lon2 = compute_grid_xg[i,j+1]
+            lat2 = compute_grid_yg[i,j+1]
+            _,_,compute_edges_y[i,j] = geod.inv( lon1,lat1,lon2,lat2)
 
     if verbose:
         print('compute_edges_x:')
@@ -107,7 +116,8 @@ def edges( compute_grid_xg, compute_grid_yg, geod, verbose=False):
 
 def fill( compute_grid_xg, compute_grid_yg, ilb, iub, jlb, jub,
     lon_subscale, lat_subscale, geod, verbose=False):
-    """Use great circle subdivisions to fill in compute grid intermediate points
+    """
+    Use great circle subdivisions to fill in compute grid intermediate points
     according to x/y subdivision levels and index ranges.
 
     Args:
@@ -116,9 +126,9 @@ def fill( compute_grid_xg, compute_grid_yg, ilb, iub, jlb, jub,
             with "boundary ring" of elements, depending on the application), and
             with existing XG, YG, grid values already mapped to their
             corresponding positions.
-        ilb, iub (int): compute_grid x-direction indices that define range of
+        ilb, iub (int): compute_grid indices that define range of x-direction
             fill-in.
-        jlb, jub (int): compute_grid y-direction indices that define range of
+        jlb, jub (int): compute_grid indices that define range of y-direction
             fill-in.
         lon_subscale (int): user-specified x-direction cell subdivision level.
         lat_subscale (int): user-specified y-direction cell subdivision level.
@@ -128,10 +138,6 @@ def fill( compute_grid_xg, compute_grid_yg, ilb, iub, jlb, jub,
     Returns:
         (compute_grid_xg_out, compute_grid_yg_out) tuple of input arrays with
         intermediate points filled in.
-
-    Note:
-        If either of the endpoints is undefined (NaN), the corresponding
-        intermediate grids will also be undefined.
 
     """
 
@@ -175,21 +181,20 @@ def fill( compute_grid_xg, compute_grid_yg, ilb, iub, jlb, jub,
         lat2 = compute_grid_yg_out[
             i_cg(it.multi_index[0]+1,ilb,lon_subscale),
             j_cg(it.multi_index[1]  ,jlb,lat_subscale)]
-        if not any(np.isnan((lon1,lat1,lon2,lat2))):
-            x_edge_subdivided_lonlats = geod.npts(
-                lon1,lat1,lon2,lat2,
-                lon_subscale*2-1)                   # n intermediate points
-            # ...and store to updated compute_grid:
-            compute_grid_xg_out[
-                i_cg(it.multi_index[0],ilb,lon_subscale)+1:
-                i_cg(it.multi_index[0]+1,ilb,lon_subscale),
-                j_cg(it.multi_index[1],jlb,lat_subscale)] = \
-                np.array(x_edge_subdivided_lonlats)[:,0]
-            compute_grid_yg_out[
-                i_cg(it.multi_index[0],ilb,lon_subscale)+1:
-                i_cg(it.multi_index[0]+1,ilb,lon_subscale),
-                j_cg(it.multi_index[1],jlb,lat_subscale)] = \
-                np.array(x_edge_subdivided_lonlats)[:,1]
+        x_edge_subdivided_lonlats = geod.npts(
+            lon1,lat1,lon2,lat2,
+            lon_subscale*2-1)   # n intermediate points
+        # ...and store to updated compute_grid:
+        compute_grid_xg_out[
+            i_cg(it.multi_index[0],ilb,lon_subscale)+1:
+            i_cg(it.multi_index[0]+1,ilb,lon_subscale),
+            j_cg(it.multi_index[1],jlb,lat_subscale)] = \
+            np.array(x_edge_subdivided_lonlats)[:,0]
+        compute_grid_yg_out[
+            i_cg(it.multi_index[0],ilb,lon_subscale)+1:
+            i_cg(it.multi_index[0]+1,ilb,lon_subscale),
+            j_cg(it.multi_index[1],jlb,lat_subscale)] = \
+            np.array(x_edge_subdivided_lonlats)[:,1]
         it.iternext()
 
     if verbose:
@@ -229,21 +234,20 @@ def fill( compute_grid_xg, compute_grid_yg, ilb, iub, jlb, jub,
         lat2 = compute_grid_yg_out[
             i_cg(it.multi_index[0],ilb),
             j_cg(it.multi_index[1]+1,jlb,lat_subscale)]
-        if not any(np.isnan((lon1,lat1,lon2,lat2))):
-            y_subdivided_lonlats = geod.npts(
-                lon1,lat1,lon2,lat2,
-                lat_subscale*2-1)                   # n intermediate points
-            # ...and store to compute_grid:
-            compute_grid_xg_out[
-                i_cg(it.multi_index[0],ilb),
-                j_cg(it.multi_index[1],jlb,lat_subscale)+1:
-                j_cg(it.multi_index[1]+1,jlb,lat_subscale)] = \
-                np.array(y_subdivided_lonlats)[:,0]
-            compute_grid_yg_out[
-                i_cg(it.multi_index[0],ilb),
-                j_cg(it.multi_index[1],jlb,lat_subscale)+1:
-                j_cg(it.multi_index[1]+1,jlb,lat_subscale)] = \
-                np.array(y_subdivided_lonlats)[:,1]
+        y_subdivided_lonlats = geod.npts(
+            lon1,lat1,lon2,lat2,
+            lat_subscale*2-1)   # n intermediate points
+        # ...and store to compute_grid:
+        compute_grid_xg_out[
+            i_cg(it.multi_index[0],ilb),
+            j_cg(it.multi_index[1],jlb,lat_subscale)+1:
+            j_cg(it.multi_index[1]+1,jlb,lat_subscale)] = \
+            np.array(y_subdivided_lonlats)[:,0]
+        compute_grid_yg_out[
+            i_cg(it.multi_index[0],ilb),
+            j_cg(it.multi_index[1],jlb,lat_subscale)+1:
+            j_cg(it.multi_index[1]+1,jlb,lat_subscale)] = \
+            np.array(y_subdivided_lonlats)[:,1]
         it.iternext()
 
     if verbose:
@@ -256,9 +260,36 @@ def fill( compute_grid_xg, compute_grid_yg, ilb, iub, jlb, jub,
     return compute_grid_xg_out, compute_grid_yg_out
 
 
-def tomitgrid(compute_grid_xg,compute_grid_yg,ilb,iub,jlb,jub,
+def tomitgrid(compute_grid_xg,compute_grid_yg,
+    iLB,ilb,iub,iUB,jLB,jlb,jub,jUB,
     geod,verbose=False):
     """Generates an mit grid from a compute grid.
+
+    Args:
+        compute_grid_xg, compute_grid_yg (numpy arrays): Arrays which have been
+            dimensioned according to lon_subscale*2 and lat_subscale*2 (possibly
+            with "boundary ring" of elements, depending on the application), and
+            with (x,y) values filled in according to cgfill().
+        iLB, iUB (int): indices that define absolute lower, upper range of
+            x-direction values for compute_grid_xg and compute_grid_yg. Used for
+            compute_grid supporting matrix dimensioning purposes.
+        jLB, jUB (int): indices that define absolute lower, upper range of
+            y-direction values for compute_grid_xg and compute_grid_yg. Used for
+            compute_grid supporting matrix dimensioning purposes.
+        ilb, iub (int): compute_grid indices that define inner range (i.e.,
+            non-boundary grids) of x-direction values for compute_grid_xg and
+            compute_grid_yg.
+        jlb, jub (int): compute_grid indices that define inner range (i.e.,
+            non-boundary grids)of y-direction values for compute_grid_xg and
+            compute_grid_yg.
+        geod (pyproj.Geod): current geoid instance.
+        verbose (logical): verbose output.
+
+    Returns:
+        mitgrid (dict): name/value (numpy 2-d array) pairs
+            corresponding to matrix name and ordering convention listed in
+            mitgridfilefields module.
+
     """
 
     outgrid = {key:None for key in mitgridfilefields.names}
@@ -274,12 +305,16 @@ def tomitgrid(compute_grid_xg,compute_grid_yg,ilb,iub,jlb,jub,
     incl = lambda idx: idx+1
 
     # compute x- and y-direction compute_grid edge lengths:
-    compute_grid_areas = areas(
-        compute_grid_xg,compute_grid_yg,geod,verbose)
+    (compute_grid_edges_x,compute_grid_edges_y) = edges(
+        compute_grid_xg,compute_grid_yg,ilb,iub,jlb,jub,geod,verbose)
 
     # compute subgrid areas:
-    (compute_grid_edges_x,compute_grid_edges_y) = edges(
-        compute_grid_xg,compute_grid_yg,geod,verbose)
+    compute_grid_areas = np.zeros((iUB-iLB,jUB-jLB))
+    compute_grid_areas[ilb:iub,jlb:jub] = areas(
+        compute_grid_xg[ilb:incl(iub),jlb:incl(jub)],
+        compute_grid_yg[ilb:incl(iub),jlb:incl(jub)],
+        compute_grid_edges_x,compute_grid_edges_y,
+        geod,verbose)
 
     # grid (tracer) cell location data:
     #   XC, YC - tracer cell center longitudes and latitudes
@@ -334,41 +369,49 @@ def tomitgrid(compute_grid_xg,compute_grid_yg,ilb,iub,jlb,jub,
 
     # DXG tracer cell southern edge from edge summations:
 
-    outgrid['DXG'] = np.empty((lon_subdiv,lat_subdiv+1))
-    outgrid['DXG'][:,:] = np.nan    # error check, mostly
+    outgrid['DXG'] = np.zeros((lon_subdiv,lat_subdiv+1))
     for i in range(0,lon_subdiv):
         for j in range(0,incl(lat_subdiv)):
-            outgrid['DXG'][i,j] = \
-                compute_grid_edges_x[ ilb + 2*i    , jlb + 2*j] + \
-                compute_grid_edges_x[ ilb + 2*i + 1, jlb + 2*j]
+            if not any(np.PZERO==np.array((
+                compute_grid_edges_x[ ilb + 2*i    , jlb + 2*j],
+                compute_grid_edges_x[ ilb + 2*i + 1, jlb + 2*j]))):
+                outgrid['DXG'][i,j] = \
+                    compute_grid_edges_x[ ilb + 2*i    , jlb + 2*j] + \
+                    compute_grid_edges_x[ ilb + 2*i + 1, jlb + 2*j]
     if verbose:
         print("outgrid['DXG']:")
         print(outgrid['DXG'])
 
     # DYG tracer cell western edge from edge summations:
 
-    outgrid['DYG'] = np.empty((lon_subdiv+1,lat_subdiv))
-    outgrid['DYG'][:,:] = np.nan    # error check, mostly
+    outgrid['DYG'] = np.zeros((lon_subdiv+1,lat_subdiv))
     for i in range(0,incl(lon_subdiv)):
         for j in range(0,lat_subdiv):
-            outgrid['DYG'][i,j] = \
-                compute_grid_edges_y[ ilb + 2*i, jlb + 2*j    ] + \
-                compute_grid_edges_y[ ilb + 2*i, jlb + 2*j + 1]
+            if not any(np.PZERO==np.array((
+                compute_grid_edges_y[ ilb + 2*i, jlb + 2*j    ],
+                compute_grid_edges_y[ ilb + 2*i, jlb + 2*j + 1]))):
+                outgrid['DYG'][i,j] = \
+                    compute_grid_edges_y[ ilb + 2*i, jlb + 2*j    ] + \
+                    compute_grid_edges_y[ ilb + 2*i, jlb + 2*j + 1]
     if verbose:
         print("outgrid['DYG']:")
         print(outgrid['DYG'])
 
     # RAC from subcell area sums:
 
-    outgrid['RAC'] = np.empty((lon_subdiv,lat_subdiv))
-    outgrid['RAC'][:,:] = np.nan    # error check, mostly
+    outgrid['RAC'] = np.zeros((lon_subdiv,lat_subdiv))
     for i in range(0,lon_subdiv):
         for j in range(0,lat_subdiv):
-            outgrid['RAC'][i,j] = \
-                compute_grid_areas[ilb + 2*i    , jlb + 2*j    ] + \
-                compute_grid_areas[ilb + 2*i + 1, jlb + 2*j    ] + \
-                compute_grid_areas[ilb + 2*i + 1, jlb + 2*j + 1] + \
-                compute_grid_areas[ilb + 2*i    , jlb + 2*j + 1]
+            if not any(np.PZERO==np.array((
+                compute_grid_areas[ilb + 2*i    , jlb + 2*j    ],
+                compute_grid_areas[ilb + 2*i + 1, jlb + 2*j    ],
+                compute_grid_areas[ilb + 2*i + 1, jlb + 2*j + 1],
+                compute_grid_areas[ilb + 2*i    , jlb + 2*j + 1]))):
+                outgrid['RAC'][i,j] = \
+                    compute_grid_areas[ilb + 2*i    , jlb + 2*j    ] + \
+                    compute_grid_areas[ilb + 2*i + 1, jlb + 2*j    ] + \
+                    compute_grid_areas[ilb + 2*i + 1, jlb + 2*j + 1] + \
+                    compute_grid_areas[ilb + 2*i    , jlb + 2*j + 1]
     if verbose:
         print("outgrid['RAC']:")
         print(outgrid['RAC'])
@@ -380,41 +423,49 @@ def tomitgrid(compute_grid_xg,compute_grid_yg,ilb,iub,jlb,jub,
 
     # DXC vorticity cell edge lengths from x-direction edge summations:
 
-    outgrid['DXC'] = np.empty((lon_subdiv+1,lat_subdiv))
-    outgrid['DXC'][:,:] = np.nan
+    outgrid['DXC'] = np.zeros((lon_subdiv+1,lat_subdiv))
     for i in range(0,incl(lon_subdiv)):
         for j in range(0,lat_subdiv):
-            outgrid['DXC'][i,j] = \
-                compute_grid_edges_x[ 2*i    , jlb + 2*j + 1] + \
-                compute_grid_edges_x[ 2*i + 1, jlb + 2*j + 1]
+            if not any(np.PZERO==np.array((
+                compute_grid_edges_x[ 2*i    , jlb + 2*j + 1],
+                compute_grid_edges_x[ 2*i + 1, jlb + 2*j + 1]))):
+                outgrid['DXC'][i,j] = \
+                    compute_grid_edges_x[ 2*i    , jlb + 2*j + 1] + \
+                    compute_grid_edges_x[ 2*i + 1, jlb + 2*j + 1]
     if verbose:
         print("outgrid['DXC']:")
         print(outgrid['DXC'])
 
     # DYC vorticity cell edge lengths from y-direction edge summations:
 
-    outgrid['DYC'] = np.empty((lon_subdiv,lat_subdiv+1))
-    outgrid['DYC'][:,:] = np.nan
+    outgrid['DYC'] = np.zeros((lon_subdiv,lat_subdiv+1))
     for i in range(0,lon_subdiv):
         for j in range(0,incl(lat_subdiv)):
-            outgrid['DYC'][i,j] = \
-                compute_grid_edges_y[ ilb + 2*i + 1, 2*j    ] + \
-                compute_grid_edges_y[ ilb + 2*i + 1, 2*j + 1]
+            if not any(np.PZERO==np.array((
+                compute_grid_edges_y[ ilb + 2*i + 1, 2*j    ],
+                compute_grid_edges_y[ ilb + 2*i + 1, 2*j + 1]))):
+                outgrid['DYC'][i,j] = \
+                    compute_grid_edges_y[ ilb + 2*i + 1, 2*j    ] + \
+                    compute_grid_edges_y[ ilb + 2*i + 1, 2*j + 1]
     if verbose:
         print("outgrid['DYC']:")
         print(outgrid['DYC'])
 
     # RAZ vorticity cell areas computed from subcell area sums:
 
-    outgrid['RAZ'] = np.empty((lon_subdiv+1,lat_subdiv+1))
-    outgrid['RAZ'][:,:] = np.nan
+    outgrid['RAZ'] = np.zeros((lon_subdiv+1,lat_subdiv+1))
     for i in range(0,incl(lon_subdiv)):
         for j in range(0,incl(lat_subdiv)):
-            outgrid['RAZ'][i,j] = \
-                compute_grid_areas[2*i    , 2*j    ] + \
-                compute_grid_areas[2*i + 1, 2*j    ] + \
-                compute_grid_areas[2*i + 1, 2*j + 1] + \
-                compute_grid_areas[2*i    , 2*j + 1]
+            if not any(np.PZERO==np.array((
+                compute_grid_areas[2*i    , 2*j    ],
+                compute_grid_areas[2*i + 1, 2*j    ],
+                compute_grid_areas[2*i + 1, 2*j + 1],
+                compute_grid_areas[2*i    , 2*j + 1]))):
+                outgrid['RAZ'][i,j] = \
+                    compute_grid_areas[2*i    , 2*j    ] + \
+                    compute_grid_areas[2*i + 1, 2*j    ] + \
+                    compute_grid_areas[2*i + 1, 2*j + 1] + \
+                    compute_grid_areas[2*i    , 2*j + 1]
     if verbose:
         print("outgrid['RAZ']:")
         print(outgrid['RAZ'])
@@ -426,41 +477,49 @@ def tomitgrid(compute_grid_xg,compute_grid_yg,ilb,iub,jlb,jub,
 
     # DXV U cell edge lengths from x-direction edge summations:
 
-    outgrid['DXV'] = np.empty((lon_subdiv+1,lat_subdiv+1))
-    outgrid['DXV'][:,:] = np.nan
+    outgrid['DXV'] = np.zeros((lon_subdiv+1,lat_subdiv+1))
     for i in range(0,incl(lon_subdiv)):
         for j in range(0,incl(lat_subdiv)):
-            outgrid['DXV'][i,j] = \
-                compute_grid_edges_x[ 2*i    , jlb + 2*j] + \
-                compute_grid_edges_x[ 2*i + 1, jlb + 2*j]
+            if not any(np.PZERO==np.array((
+                compute_grid_edges_x[ 2*i    , jlb + 2*j],
+                compute_grid_edges_x[ 2*i + 1, jlb + 2*j]))):
+                outgrid['DXV'][i,j] = \
+                    compute_grid_edges_x[ 2*i    , jlb + 2*j] + \
+                    compute_grid_edges_x[ 2*i + 1, jlb + 2*j]
     if verbose:
         print("outgrid['DXV']:")
         print(outgrid['DXV'])
 
     # DYF U cell edge lengths from y-direction edge summations:
 
-    outgrid['DYF'] = np.empty((lon_subdiv,lat_subdiv))
-    outgrid['DYF'][:,:] = np.nan
+    outgrid['DYF'] = np.zeros((lon_subdiv,lat_subdiv))
     for i in range(0,lon_subdiv):
         for j in range(0,lat_subdiv):
-            outgrid['DYF'][i,j] = \
-                compute_grid_edges_y[ ilb + 2*i + 1, jlb + 2*j    ] + \
-                compute_grid_edges_y[ ilb + 2*i + 1, jlb + 2*j + 1]
+            if not any(np.PZERO==np.array((
+                compute_grid_edges_y[ ilb + 2*i + 1, jlb + 2*j    ],
+                compute_grid_edges_y[ ilb + 2*i + 1, jlb + 2*j + 1]))):
+                outgrid['DYF'][i,j] = \
+                    compute_grid_edges_y[ ilb + 2*i + 1, jlb + 2*j    ] + \
+                    compute_grid_edges_y[ ilb + 2*i + 1, jlb + 2*j + 1]
     if verbose:
         print("outgrid['DYF']:")
         print(outgrid['DYF'])
 
     # RAW U cell areas from subcell area sums:
 
-    outgrid['RAW'] = np.empty((lon_subdiv+1,lat_subdiv))
-    outgrid['RAW'][:,:] = np.nan
+    outgrid['RAW'] = np.zeros((lon_subdiv+1,lat_subdiv))
     for i in range(0,incl(lon_subdiv)):
         for j in range(0,lat_subdiv):
-            outgrid['RAW'][i,j] = \
-                compute_grid_areas[2*i    , jlb + 2*j    ] + \
-                compute_grid_areas[2*i + 1, jlb + 2*j    ] + \
-                compute_grid_areas[2*i + 1, jlb + 2*j + 1] + \
-                compute_grid_areas[2*i    , jlb + 2*j + 1]
+            if not any(np.PZERO==np.array((
+                compute_grid_areas[2*i    , jlb + 2*j    ],
+                compute_grid_areas[2*i + 1, jlb + 2*j    ],
+                compute_grid_areas[2*i + 1, jlb + 2*j + 1],
+                compute_grid_areas[2*i    , jlb + 2*j + 1]))):
+                outgrid['RAW'][i,j] = \
+                    compute_grid_areas[2*i    , jlb + 2*j    ] + \
+                    compute_grid_areas[2*i + 1, jlb + 2*j    ] + \
+                    compute_grid_areas[2*i + 1, jlb + 2*j + 1] + \
+                    compute_grid_areas[2*i    , jlb + 2*j + 1]
     if verbose:
         print("outgrid['RAW']:")
         print(outgrid['RAW'])
@@ -472,41 +531,49 @@ def tomitgrid(compute_grid_xg,compute_grid_yg,ilb,iub,jlb,jub,
 
     # DXF V cell edge lengths from x-direction edge summations:
 
-    outgrid['DXF'] = np.empty((lon_subdiv,lat_subdiv))
-    outgrid['DXF'][:,:] = np.nan
+    outgrid['DXF'] = np.zeros((lon_subdiv,lat_subdiv))
     for i in range(0,lon_subdiv):
         for j in range(0,lat_subdiv):
-            outgrid['DXF'][i,j] = \
-                compute_grid_edges_x[ ilb + 2*i    , jlb + 2*j + 1] + \
-                compute_grid_edges_x[ ilb + 2*i + 1, jlb + 2*j + 1]
+            if not any(np.PZERO==np.array((
+                compute_grid_edges_x[ ilb + 2*i    , jlb + 2*j + 1],
+                compute_grid_edges_x[ ilb + 2*i + 1, jlb + 2*j + 1]))):
+                outgrid['DXF'][i,j] = \
+                    compute_grid_edges_x[ ilb + 2*i    , jlb + 2*j + 1] + \
+                    compute_grid_edges_x[ ilb + 2*i + 1, jlb + 2*j + 1]
     if verbose:
         print("outgrid['DXF']:")
         print(outgrid['DXF'])
 
     # DYU V cell western edge lengths from y-direction edge summations:
 
-    outgrid['DYU'] = np.empty((lon_subdiv+1,lat_subdiv+1))
-    outgrid['DYU'][:,:] = np.nan
+    outgrid['DYU'] = np.zeros((lon_subdiv+1,lat_subdiv+1))
     for i in range(0,incl(lon_subdiv)):
         for j in range(0,incl(lat_subdiv)):
-            outgrid['DYU'][i,j] = \
-                compute_grid_edges_y[ ilb + 2*i, 2*j    ] + \
-                compute_grid_edges_y[ ilb + 2*i, 2*j + 1]
+            if not any(np.PZERO==np.array((
+                compute_grid_edges_y[ ilb + 2*i, 2*j    ],
+                compute_grid_edges_y[ ilb + 2*i, 2*j + 1]))):
+                outgrid['DYU'][i,j] = \
+                    compute_grid_edges_y[ ilb + 2*i, 2*j    ] + \
+                    compute_grid_edges_y[ ilb + 2*i, 2*j + 1]
     if verbose:
         print("outgrid['DYU']:")
         print(outgrid['DYU'])
 
     # RAS V cell areas from subcell area sums:
 
-    outgrid['RAS'] = np.empty((lon_subdiv,lat_subdiv+1))
-    outgrid['RAS'][:,:] = np.nan
+    outgrid['RAS'] = np.zeros((lon_subdiv,lat_subdiv+1))
     for i in range(0,lon_subdiv):
         for j in range(0,incl(lat_subdiv)):
-            outgrid['RAS'][i,j] = \
-                compute_grid_areas[ilb + 2*i    , 2*j    ] + \
-                compute_grid_areas[ilb + 2*i + 1, 2*j    ] + \
-                compute_grid_areas[ilb + 2*i + 1, 2*j + 1] + \
-                compute_grid_areas[ilb + 2*i    , 2*j + 1]
+            if not any(np.PZERO==np.array((
+                compute_grid_areas[ilb + 2*i    , 2*j    ],
+                compute_grid_areas[ilb + 2*i + 1, 2*j    ],
+                compute_grid_areas[ilb + 2*i + 1, 2*j + 1],
+                compute_grid_areas[ilb + 2*i    , 2*j + 1]))):
+                outgrid['RAS'][i,j] = \
+                    compute_grid_areas[ilb + 2*i    , 2*j    ] + \
+                    compute_grid_areas[ilb + 2*i + 1, 2*j    ] + \
+                    compute_grid_areas[ilb + 2*i + 1, 2*j + 1] + \
+                    compute_grid_areas[ilb + 2*i    , 2*j + 1]
     if verbose:
         print("outgrid['RAS']:")
         print(outgrid['RAS'])

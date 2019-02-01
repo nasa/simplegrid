@@ -85,7 +85,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
     #
     # Based on user-selected discretization level, create a "compute grid" that
     # spans the expected range, plus a boundary "ring" one compute cell wide.
-    # Initializing boundary grid values to NaNs will allow us to compute
+    # Initializing boundary grid values to np.PZERO will allow us to compute
     # subsequent mitgrid values using consistent indexing, while naturally
     # producing undefined values at the boundaries. The total compute grid
     # ranges are given by LB/UB, while the user-selected range is given by
@@ -96,7 +96,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
     #           |
     #       jUB +------------------+
     #           |                  |
-    #       jub +   o----------+   |<-- ring of NaN values
+    #       jub +   o----------+   |<-- ring of PZERO values
     #           |   |          |   |
     #           |   |          |<--|--- area to be regridded
     #           |   |          |   |    (lat_subscale x lon_subscale)
@@ -119,10 +119,8 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
     # "compute grid" dimensions, allocation:
     num_compute_grid_rows = iUB + 1
     num_compute_grid_cols = jUB + 1
-    compute_grid_xg = np.empty((num_compute_grid_rows,num_compute_grid_cols))
-    compute_grid_xg[:,:] = np.nan
-    compute_grid_yg = np.empty((num_compute_grid_rows,num_compute_grid_cols))
-    compute_grid_yg[:,:] = np.nan
+    compute_grid_xg = np.zeros((num_compute_grid_rows,num_compute_grid_cols))
+    compute_grid_yg = np.zeros((num_compute_grid_rows,num_compute_grid_cols))
 
     #
     # Step 2: Populate compute grid points corresponding to user-selected corner
@@ -149,7 +147,7 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
     #
 
     outgrid = computegrid.tomitgrid( compute_grid_xg, compute_grid_yg,
-        ilb, iub, jlb, jub, geod, verbose)
+        iLB, ilb, iub, iUB, jLB, jlb, jub, jUB, geod, verbose)
 
     return outgrid, lon_subscale, lat_subscale
 

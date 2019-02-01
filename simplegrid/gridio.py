@@ -12,19 +12,19 @@ def read_mitgridfile(filename,ni,nj,verbose=False):
     expected grid cell counts, ni and nj, must be provided on input.
 
     Args:
-        filename (str): mitgrid (path and) file name
-        ni (int): number of expected nominal "east-west" grid cells
-        nj (int): number of expected nominal "north-south" grid cells
-        verbose (bool): progress reporting to stdio
+        filename (str): mitgrid (path and) file name.
+        ni (int): number of expected nominal "east-west" grid cells.
+        nj (int): number of expected nominal "north-south" grid cells.
+        verbose (bool): progress reporting to stdio.
 
     Returns:
         mitgrid_matrices (dict): name/value (numpy 2-d array) pairs
             corresponding to matrix name and ordering convention listed in
-            mitgridfilefields module
+            mitgridfilefields module.
 
     Raises:
         RuntimeError: If any matrix resize operation attempts to delete nonzero
-            row/column data (indicating improper input assumptions)
+            row/column data (indicating improper input assumptions).
 
     Comments:
         - Nominal "north-south"/"east-west" directions depend on the particular

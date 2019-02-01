@@ -4,6 +4,7 @@ import numpy as np
 # some useful constants:
 edges = (N,S,E,W) = list(range(4))
 
+
 def lonlat2cart( lons, lats, rad=1.):
     """Convert longitude/latitude to cartesian coordinates.
 
@@ -14,10 +15,14 @@ def lonlat2cart( lons, lats, rad=1.):
             coordinates on the unit sphere).
 
     Returns:
-        cart (numpy 3-d array): cartesian coordinates on the sphere.
+        cart (numpy 3-d array): cartesian coordinates on the sphere.  Rows and
+            columns are arranged according to the input lons/lats arrays, while
+            along the third axis, the 0, 1, and 2 indices correspond to the x, y
+            and z components, respectively.
 
     Raises:
         ValueError: If input lons and lats matrix dimensions are not equal.
+
     """
 
     if lons.ndim!=2 or lats.ndim!=2 or lons.shape!=lats.shape:
@@ -26,9 +31,9 @@ def lonlat2cart( lons, lats, rad=1.):
     dims = list(lons.shape)
     dims.append(3)
     cart = np.zeros(dims)
-    cart[:,:,0] = np.cos(np.radians(lons))*np.cos(np.radians(lats))
-    cart[:,:,1] = np.sin(np.radians(lons))*np.cos(np.radians(lats))
-    cart[:,:,2] = np.sin(np.radians(lats))
+    cart[:,:,0] = np.cos(np.radians(lons))*np.cos(np.radians(lats)) # x
+    cart[:,:,1] = np.sin(np.radians(lons))*np.cos(np.radians(lats)) # y
+    cart[:,:,2] = np.sin(np.radians(lats))                          # z
 
     return cart
 
@@ -76,13 +81,25 @@ def nearest(lon,lat,lons,lats,geod):
 
 
 def squad_uarea( cart):
-    """Compute areas for cartesian array of corner points on the unit sphere.
-    
+    """Compute quadrilateral surface areas for cartesian array of corner points
+    on the unit sphere.
+
     Args:
-        cart (numpy 3-d array): 2-d array of cartesian x,y,z corner points on the unit sphere.
+        cart (numpy array): 3-d array (m x n x 3) of cartesian x,y,z corner
+            points on the unit sphere (for every (i,j), (x,y,z) = (i,j,0),
+            (i,j,1), (i,j,2)).
 
     Returns:
-        areas (numpy 2-d array): n-1 x m-1 array of cell areas.
+        areas (numpy array): 2-d array (n-1 x m-1) of cell areas.
+
+    Note:
+        One of many possible approaches, the algorithm implemented here is based
+        on Girard's spherical excess formula, with direct calculation of angles
+        using the spherical law of cosines.  Note that, due to numerical
+        round-off, its results can be inaccurate for small angles/areas (edge
+        lengths less than roughly 5km on the scaled sphere).  In such cases,
+        pquad_uarea is recommended.
+
     """
 
     area = np.zeros((np.size(cart,0)-1,np.size(cart,1)-1))
@@ -114,6 +131,47 @@ def squad_uarea( cart):
 
             # area:
             area[x_idx,y_idx] = A1+B1+C1 + A2+B2+C2 - 2*np.pi
+
+    return area
+
+
+def pquad_uarea( cart):
+    """ Compute planar quadrilateral (faceted) areas for cartesian array of
+    corner points on the unit sphere.
+
+    Args:
+        cart (numpy array): 3-d array (m x n x 3) of cartesian x,y,z corner
+            points on the unit sphere (for every (i,j), (x,y,z) = (i,j,0),
+            (i,j,1), (i,j,2)).
+
+    Returns:
+        areas (numpy array): 2-d array (n-1 x m-1) of cell areas.
+
+    Note:
+        The algorithm implemented here computes areas using edge vector cross
+        products and is recommented for small angles/areas (edge lengths less
+        than roughly 5km on the scaled sphere).  If areas are larger,
+        squad_uarea is recommended.
+
+    """
+
+    area = np.zeros((np.size(cart,0)-1,np.size(cart,1)-1))
+
+    for x_idx in np.arange(np.size(cart,0)-1):
+        for y_idx in np.arange(np.size(cart,1)-1):
+
+            # quadrilateral corners in counterclockwise direction:
+            ptA = cart[x_idx  ,y_idx  ,:]
+            ptB = cart[x_idx+1,y_idx  ,:]
+            ptC = cart[x_idx+1,y_idx+1,:]
+            ptD = cart[x_idx  ,y_idx+1,:]
+
+            # edge vectors:
+            ab = ptB-ptA
+            ac = ptC-ptA
+            ad = ptD-ptA
+
+            area[x_idx,y_idx] = 0.5 * np.linalg.norm(np.cross(ab,ac)+np.cross(ac,ad))
 
     return area
 

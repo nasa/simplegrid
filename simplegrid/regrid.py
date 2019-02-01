@@ -99,8 +99,8 @@ def regrid( verbose=False, **kwargs):
     Note:
         Corner point information (lon1/lat1, lon2/lat2) can be either literal
         northwest/southeast corners, or diagonal corners provided simply for
-        orientation purposes. Either way, the output grid will be aligned such
-        that 'northwest' is at min i, max j, and 'southeast' is at max i, min j.
+        orientation purposes. The output grid will be aligned such that
+        'northwest' is at min i, max j, and 'southeast' is at max i, min j.
 
     """
 
@@ -183,13 +183,13 @@ def regrid( verbose=False, **kwargs):
     # Based on user-selected corner points and discretization level, create a
     # "compute grid" that spans the selected NW/SE range, at double the
     # resolution, plus a boundary "ring" one compute cell wide.  Initializing
-    # boundary grid values to NaNs will allow us to compute subsequent mitgrid
-    # values using consistent indexing, while naturally producing undefined
-    # values at the boundaries. The total compute grid ranges are given by
-    # LB/UB, while the user-selected range, given by ilb_mitgrid, iub_mitgrid,
-    # jlb_mitgrid, jub_mitgrid, is mapped (along with all intermediate mitgrid
-    # points) to the corresponding compute grid range, lb/ub; a picture might
-    # help:
+    # boundary grid values to np.PZERO will allow us to compute subsequent
+    # mitgrid values using consistent indexing, while naturally producing
+    # undefined values at the boundaries. The total compute grid ranges are
+    # given by LB/UB, while the user-selected range, given by ilb_mitgrid,
+    # iub_mitgrid, jlb_mitgrid, jub_mitgrid, is mapped (along with all
+    # intermediate mitgrid points) to the corresponding compute grid range,
+    # lb/ub; a picture might help:
     #
     #   '<->' == corner point mapping
     #    ...  == range of intermediate grid point mapping
@@ -198,7 +198,7 @@ def regrid( verbose=False, **kwargs):
     #                       |
     #                   jUB +------------------+
     #                       |                  |
-    #   jub_mitgrid <-> jub +   o----------+   |<-- ring of NaN values
+    #   jub_mitgrid <-> jub +   o----------+   |<-- ring of PZERO values
     #        .              |   |          |   |
     #        .              |   |          |<--|--- area to be regridded
     #        .              |   |          |   |
@@ -230,10 +230,8 @@ def regrid( verbose=False, **kwargs):
     # compute grid initialization, allocation:
     num_compute_grid_rows = iUB + 1
     num_compute_grid_cols = jUB + 1
-    compute_grid_xg = np.empty((num_compute_grid_rows,num_compute_grid_cols))
-    compute_grid_xg[:,:] = np.nan
-    compute_grid_yg = np.empty((num_compute_grid_rows,num_compute_grid_cols))
-    compute_grid_yg[:,:] = np.nan
+    compute_grid_xg = np.zeros((num_compute_grid_rows,num_compute_grid_cols))
+    compute_grid_yg = np.zeros((num_compute_grid_rows,num_compute_grid_cols))
 
     # map mitgrid values to corresponding compute_grid locations:
     
@@ -285,7 +283,7 @@ def regrid( verbose=False, **kwargs):
     #
 
     outgrid = computegrid.tomitgrid( compute_grid_xg, compute_grid_yg,
-        ilb, iub, jlb, jub, geod, verbose)
+        iLB, ilb, iub, iUB, jLB, jlb, jub, jUB, geod, verbose)
 
     return (
         outgrid,
@@ -299,18 +297,18 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
     (newgrid,ni_regridded,nj_regridded) = regrid(
-        args.mitgridfile,
-        args.xg_file,
-        args.yg_file,
-        args.ni,
-        args.nj,
-        args.lon1,
-        args.lat1,
-        args.lon2,
-        args.lat2,
-        args.lon_subscale,
-        args.lat_subscale,
-        args.verbose)
+        args.verbose,
+        mitgridfile = args.mitgridfile,
+        xg_file     = args.xg_file,
+        yg_file     = args.yg_file,
+        ni          = args.ni,
+        nj          = args.nj,
+        lon1        = args.lon1,
+        lat1        = args.lat1,
+        lon2        = args.lon2,
+        lat2        = args.lat2,
+        lon_subscale= args.lon_subscale,
+        lat_subscale= args.lat_subscale)
     if args.verbose:
         print('writing {0:s} with ni={1:d}, nj={2:d}...'.
             format(args.outfile,ni_regridded,nj_regridded))

@@ -2,6 +2,7 @@
 import numpy as np
 import pyproj
 from . import computegrid
+from . import config
 
 from .util import (N,S,E,W)
 
@@ -26,12 +27,11 @@ def matchedges( aXG, aYG, bXG, bYG, geod, verbose=False):
             compute edge values and corresponding slice object, that can
             facilitate subsequent tile join and edge value interpolation
             operations.
-            - a_edge: indicator denoting the matching edge of tile 'A' (N,S,E,
-                or W)
+            - a_edge: indicator denoting the matching edge of tile 'A' (integer
+                N(0), S(1), E(2), or W(2))
             - a_edge_slice: slice operator on tile 'A' (aXG, aYG) that can be
                 used to produce edge in common with tile 'B'
-            - b_edge: indicator denoting the matching edge of tile 'B' (N,S,E,
-                or W)
+            - b_edge: same as a_edge, but with respect to tile 'B' (integer)
             - b_edge_slice: slice operator on tile 'B' (bXG, bYG) that can be
                 used to produce edge in common with tile 'A'. If tiles match
                 exactly, note that aXG[a_edge_slice] = bXG[b_edge_slice] and
@@ -59,7 +59,7 @@ def matchedges( aXG, aYG, bXG, bYG, geod, verbose=False):
 
     # some useful parameters:
     corners = (SW,SE,NE,NW) = (0,0),(-1,0),(-1,-1),(0,-1)   # full matrix idxs
-    CLOSE_ENOUGH = 1.e-6                                    # error checking
+    #CLOSE_ENOUGH = 1.e-6                                    # error checking
 
     # determine nominal diagonal distance for error checking:
     _,_,a_swne_dist = geod.inv(aXG[SW],aYG[SW],aXG[NE],aYG[NE])
@@ -91,13 +91,14 @@ def matchedges( aXG, aYG, bXG, bYG, geod, verbose=False):
                 b_to_a_dist[corner_b] = dist
 
     # make sure minimums are sufficently close to zero:
-    if np.amin([np.amin(a_to_b_dist),np.amin(b_to_a_dist)]) > nom_diag*CLOSE_ENOUGH:
+    if np.amin([np.amin(a_to_b_dist),np.amin(b_to_a_dist)]) > \
+            nom_diag*config.POINTS_ARE_CLOSE_ENOUGH:
         raise ValueError('Input tiles not sufficiently close to determine common edge')
 
     # edge detection:
 
-    a_to_b_closest = np.less_equal(a_to_b_dist,nom_diag*CLOSE_ENOUGH)
-    b_to_a_closest = np.less_equal(b_to_a_dist,nom_diag*CLOSE_ENOUGH)
+    a_to_b_closest = np.less_equal(a_to_b_dist,nom_diag*config.POINTS_ARE_CLOSE_ENOUGH)
+    b_to_a_closest = np.less_equal(b_to_a_dist,nom_diag*config.POINTS_ARE_CLOSE_ENOUGH)
 
     if np.all(a_to_b_closest[0,:]):
         a_edge          = W
