@@ -1,6 +1,7 @@
 
 import unittest
 import simplegrid as sg
+import numpy as np
 import numpy.testing as nptest
 
 class TestRegrid(unittest.TestCase):
@@ -202,6 +203,36 @@ class TestRegrid(unittest.TestCase):
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(newgrid,validated_grid):
             nptest.assert_almost_equal(newgrid[a],validated_grid[b])
+
+    def test_regrid_7(self):
+        """Tests 1x1 'remeshing' of llc 90 tile 005 and compares subset of differences."""
+
+        tile = './data/tile005.mitgrid'
+        # mask off the last rows to get a more valid comparison (by inspection,
+        # differences are concentrated in this distorted range), and establish
+        # (again, by inspection), an allowable percentage difference:
+        filter = 10
+        maxdiff = 1.5
+
+        # load tile of interest so we can get corner points:
+        mg = sg.gridio.read_mitgridfile(tile,270,90)
+
+        # 1x1 "regrid":
+        (mg_new,mg_new_ni,mg_new_nj) = sg.regrid.regrid(
+            mitgridfile=tile,
+            ni=270, nj=90,
+            lon1=mg['XG'][0,-1], lat1=mg['YG'][0,-1],   # "NW"
+            lon2=mg['XG'][-1,0], lat2=mg['YG'][-1,0],   # "SE"
+            lon_subscale=1, lat_subscale=1)
+
+        # compare:
+        for name in sg.mitgridfilefields.names:
+            mg_new[name][-filter:,:] = 1.
+            mg[name][-filter:,:] = 1.
+            diffs = (np.nan_to_num(mg_new[name])-np.nan_to_num(mg[name]))/np.nan_to_num(mg[name])
+            nptest.assert_array_less(
+                np.amax(diffs), maxdiff/100.,
+                "array['{0}'] max diff is not less than {1}%".format(name,maxdiff/100.))
 
 
 if __name__=='__main__':

@@ -102,6 +102,10 @@ def squad_uarea( cart):
 
     """
 
+    # only because some geometries are poorly conditioned:
+    import warnings
+    warnings.filterwarnings("ignore")
+
     area = np.zeros((np.size(cart,0)-1,np.size(cart,1)-1))
 
     for x_idx in np.arange(np.size(cart,0)-1):
