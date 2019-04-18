@@ -28,7 +28,7 @@ def read_mitgridfile(filename,ni,nj,verbose=False):
 
     Comments:
         - Nominal "north-south"/"east-west" directions depend on the particular
-            gridfile orientation
+            gridfile orientation.
         - Note that ni and nj map to output matrix rows and columns,
             respectively.
         - The data stream in mitgrid files is assumed to read columwise (e.g. in
@@ -128,15 +128,22 @@ def write_mitgridfile(filename,griddata,ni,nj,verbose=False):
     Returns:
         bool: True for success, False otherwise.
 
+    Comments:
+        - Empty griddata fields will be written as fully-populated arrays of
+          NaNs.
+
     """
 
     fd = open(filename,'wb')
     slice_size = (ni+1)*(nj+1)
 
     for (name,ni_del,nj_del) in zip(mgf.names,mgf.ni_delta_sizes,mgf.nj_delta_sizes):
+
         # copy data to standard (ni+1,nj+1)-sized array:
         tmparray = np.zeros((ni+1,nj+1))
-        tmparray[:ni+ni_del,:nj+nj_del] = griddata[name]
+        tmparray[:ni+ni_del,:nj+nj_del] = griddata[name]    # note: tmparray will be NaNs
+                                                            # if griddata[name]=None
+                                                            # for numpy v1.16.2
         # since np.tofile writes in C order, explicity recast array to vector
         # using fortran ordering:
         tmparray = np.reshape(tmparray,slice_size,order='F')

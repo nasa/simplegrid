@@ -19,7 +19,7 @@ solutions. It also contains several useful utilities for grid manipulation, file
 i/o, and coincident edge detection.
 
 Grid point location data are specified in decimal longitude and latitude, with
-resulting MITgcm grids data in units of meters.
+resulting MITgcm grid data in units of meters.
 
 
 Installation:
