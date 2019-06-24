@@ -69,14 +69,17 @@ def regrid( verbose=False, **kwargs):
         **kwargs: Arbitrary keyword arguments.
 
     Kwargs:
-        mitgridfile (str, required if no xg_file, yg_file): (path and) filename
-            of data to be regridded.
-        xg_file (str, required if no mitgridfile): xg (path and) file input
-            alternative to mitgridfile (csv if .csv extension (one matrix row
-            per line), double-precision column-ordered binary otherwise; yg_file
-            must also be provided).
-        yg_file (str, required if no mitgridfile): yg (path and) file input
-            alternative to mitgridfile (see xg_file comments)
+        mitgridfile (str, required if no xg_file, yg_file or mitgrid_matrices):
+            (path and) filename of data to be regridded.
+        xg_file (str, required if no mitgridfile or mitgrid_matrices): xg (path
+            and) file input alternative to mitgridfile (csv if .csv extension
+            (one matrix row per line), double-precision column-ordered binary
+            otherwise; yg_file must also be provided).
+        yg_file (str, required if no mitgridfile or mitgrid_matrices): yg (path
+            and) file input alternative to mitgridfile (see xg_file comments)
+        mitgrid_matrices (dict, required if no mitgridfile or xg_file, yg_file):
+            name/value (numpy 2-d array) pairs corresponding to matrix name and
+            ordering convention listed in mitgridfilefields module.
         ni (int, required): number of tracer points in the model grid 'x'
             direction.
         nj (int, required): number of tracer points in the model grid 'y'
@@ -108,6 +111,7 @@ def regrid( verbose=False, **kwargs):
     mitgridfile     = kwargs.get('mitgridfile')
     xg_file         = kwargs.get('xg_file')
     yg_file         = kwargs.get('yg_file')
+    mitgrid_matrices= kwargs.get('mitgrid_matrices')
     ni              = kwargs.get('ni')
     nj              = kwargs.get('nj')
     lon1            = kwargs.get('lon1')
@@ -135,9 +139,11 @@ def regrid( verbose=False, **kwargs):
             mitgrid['XG'] = np.reshape(XG_raw,(ni+1,nj+1),order='F')
             YG_raw = np.fromfile(yg_file,mitgridfilefields.datatype)
             mitgrid['YG'] = np.reshape(YG_raw,(ni+1,nj+1),order='F')
+    elif mitgrid_matrices:
+        mitgrid = mitgrid_matrices
     else:
         raise ValueError(
-            "Either an mitgridfile or xg_file/yg_file pair must be provided.")
+            "Either mitgridfile, xg_file/yg_file pair, or mitgrid_matrices must be provided.")
 
     # for now, assume spherical geoid (perhaps user-specified later):
     geod = pyproj.Geod(ellps='sphere')
