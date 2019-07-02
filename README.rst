@@ -90,6 +90,7 @@ Quick Start Examples:
 
             import simplegrid as sg
             (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
+                strict=True, verbose=False,
                 mitgridfile='./data/tile005.mitgrid',
                 ni=270, nj=90,
                 lon1=-127.73445435, lat1=67.56064719,
@@ -108,7 +109,8 @@ Quick Start Examples:
                 --lat2   67.40168504            \
                 --lon_subscale 10               \
                 --lat_subscale 10               \
-                --outfile regrid005.mitgrid
+                --outfile regrid005.mitgrid     \
+                --strict
 
         As in the preceding mkgrid case, all horizontal grid quantities are
         either written to a dictionary of name/value pairs in python or, in the
@@ -165,8 +167,9 @@ Quick Start Examples:
 
             import simplegrid as sg
             (tilea_edge,tileb_edge,new_tilea_grid) = sg.addfringe.addfringe(
-                './data/tile_A_2x2.mitgrid',2,2,
-                './data/tile_B_E_2x2.mitgrid',2,2)
+                strict=True,
+                tilea='./data/tile_A_2x2.mitgrid',nia=2,nja=2,
+                tileb='./data/tile_B_E_2x2.mitgrid',nib=2,njb=2)
 
         new_tilea_grid is a dictionary of mitgrid name/value pairs containing
         tile_A input data, augmented with eastern edge data computed using
@@ -183,7 +186,8 @@ Quick Start Examples:
                 --tileb tile_B_E_2x2.mitgrid    \
                 --nib 2                         \
                 --njb 2                         \
-                --outfile addfringe_A_EW_2x2.mitgrid
+                --outfile addfringe_A_EW_2x2.mitgrid \
+                --strict
 
         As in the python example, the output file contains tile_A grid
         quantities, augmented with eastern edge data computed using tile_B.
@@ -201,8 +205,9 @@ Quick Start Examples:
         from python::
 
             (newgrid,newgrid_ni,newgrid_nj) = sg.stitch.stitch(
-                './data/tile_A_2x2.mitgrid',2,2,
-                './data/tile_B_N_2x2.mitgrid',2,2)
+                strict=True, verbose=False,
+                tilea='./data/tile_A_2x2.mitgrid',nia=2,nja=2,
+                tileb='./data/tile_B_N_2x2.mitgrid',nib=2,njb=2)
 
         As in the previous examples, newgrid is a dictionary of mitgrid
         name/value pairs, and newgrid_ni and newgrid_nj provide the tracer cell
@@ -217,6 +222,7 @@ Quick Start Examples:
                 --tileb tile_B_N_2x2.mitgrid    \
                 --nib 2                         \
                 --njb 2                         \
-                --outfile stitch_AB_NS_2x4.mitgrid
+                --outfile stitch_AB_NS_2x4.mitgrid \
+                --strict
 
 
