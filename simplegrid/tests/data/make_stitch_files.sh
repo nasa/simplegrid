@@ -15,7 +15,8 @@ sgstitch                                \
   --tileb tile_B_E_1x1.mitgrid          \
   --nib 1                               \
   --njb 1                               \
-  --outfile stitch_AB_EW_2x1.mitgrid
+  --outfile stitch_AB_EW_2x1.mitgrid    \
+  --strict
 
 # test_stitch_2:
 sgstitch                                \
@@ -25,7 +26,8 @@ sgstitch                                \
   --tileb tile_B_N_1x1.mitgrid          \
   --nib 1                               \
   --njb 1                               \
-  --outfile stitch_AB_NS_1x2.mitgrid
+  --outfile stitch_AB_NS_1x2.mitgrid    \
+  --strict
 
 # test_stitch_3:
 sgstitch                                \
@@ -35,7 +37,8 @@ sgstitch                                \
   --tileb tile_B_W_1x1.mitgrid          \
   --nib 1                               \
   --njb 1                               \
-  --outfile stitch_AB_WE_2x1.mitgrid
+  --outfile stitch_AB_WE_2x1.mitgrid    \
+  --strict
 
 # test_stitch_4:
 sgstitch                                \
@@ -45,7 +48,8 @@ sgstitch                                \
   --tileb tile_B_S_1x1.mitgrid          \
   --nib 1                               \
   --njb 1                               \
-  --outfile stitch_AB_SN_1x2.mitgrid
+  --outfile stitch_AB_SN_1x2.mitgrid    \
+  --strict
 
 
 # 2x2 tile tests:
@@ -58,7 +62,8 @@ sgstitch                                \
   --tileb tile_B_E_2x2.mitgrid          \
   --nib 2                               \
   --njb 2                               \
-  --outfile stitch_AB_EW_4x2.mitgrid
+  --outfile stitch_AB_EW_4x2.mitgrid    \
+  --strict
 
 # test_stitch_6:
 sgstitch                                \
@@ -68,7 +73,8 @@ sgstitch                                \
   --tileb tile_B_N_2x2.mitgrid          \
   --nib 2                               \
   --njb 2                               \
-  --outfile stitch_AB_NS_2x4.mitgrid
+  --outfile stitch_AB_NS_2x4.mitgrid    \
+  --strict
 
 # test_stitch_7:
 sgstitch                                \
@@ -78,7 +84,8 @@ sgstitch                                \
   --tileb tile_B_W_2x2.mitgrid          \
   --nib 2                               \
   --njb 2                               \
-  --outfile stitch_AB_WE_4x2.mitgrid
+  --outfile stitch_AB_WE_4x2.mitgrid    \
+  --strict
 
 # test_stitch_8:
 sgstitch                                \
@@ -88,5 +95,6 @@ sgstitch                                \
   --tileb tile_B_S_2x2.mitgrid          \
   --nib 2                               \
   --njb 2                               \
-  --outfile stitch_AB_SN_2x4.mitgrid
+  --outfile stitch_AB_SN_2x4.mitgrid    \
+  --strict
 

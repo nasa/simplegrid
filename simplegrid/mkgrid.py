@@ -43,20 +43,24 @@ def create_parser():
     return parser
 
 
-def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
+def mkgrid( verbose=False, **kwargs):
     """Creates a rectangular lon/lat grid using simple great circle-based
     subdivisions. A normal spherical geoid is currently assumed.
 
     Args:
-        lon1 (float): longitude of northwest corner point.
-        lat1 (float): latitude of northwest corner point.
-        lon2 (float): longitude of southeast corner point.
-        lat2 (float): latitude of southeast corner point.
-        lon_subscale (int): desired number of longitudinal subdivisions in the
-            resulting grid (number of x-direction tracer cells).
-        lat_subscale (int): desired number of latitudinal subdivisions in the
-            resulting grid (number of y-direction tracer cells).
         verbose (bool): True for diagnostic output, False otherwise.
+
+    Kwargs:
+        lon1 (float, required): longitude of northwest corner point.
+        lat1 (float, required): latitude of northwest corner point.
+        lon2 (float, required): longitude of southeast corner point.
+        lat2 (float, required): latitude of southeast corner point.
+        lon_subscale (int, required): desired number of longitudinal
+            subdivisions in the resulting grid (number of x-direction tracer
+            cells).
+        lat_subscale (int, required): desired number of latitudinal
+            subdivisions in the resulting grid (number of y-direction tracer
+            cells).
 
     Returns:
         (newgrid,newgrid_ni,newgrid_nj): For consistency with regrid(), tuple
@@ -70,6 +74,14 @@ def mkgrid(lon1,lat1,lon2,lat2,lon_subscale,lat_subscale,verbose=False):
         that 'northwest' is at min i, max j, and 'southeast' is at max i, min j.
 
     """
+
+    # kwarg handling:
+    lon1        = kwargs.get('lon1')
+    lat1        = kwargs.get('lat1')
+    lon2        = kwargs.get('lon2')
+    lat2        = kwargs.get('lat2')
+    lon_subscale= kwargs.get('lon_subscale')
+    lat_subscale= kwargs.get('lat_subscale')
 
     # for now, assume spherical geoid (perhaps user-specified later):
     geod = pyproj.Geod(ellps='sphere')
@@ -158,13 +170,13 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
     (newgrid,newgrid_ni,newgrid_nj) = mkgrid(
-        args.lon1,
-        args.lat1,
-        args.lon2,
-        args.lat2,
-        args.lon_subscale,
-        args.lat_subscale,
-        args.verbose)
+        args.verbose,
+        lon1        = args.lon1,
+        lat1        = args.lat1,
+        lon2        = args.lon2,
+        lat2        = args.lat2,
+        lon_subscale= args.lon_subscale,
+        lat_subscale= args.lat_subscale)
     if args.verbose:
         print('writing {0:s} with ni={1:d}, nj={2:d}...'.
             format(args.outfile,newgrid_ni,newgrid_nj))

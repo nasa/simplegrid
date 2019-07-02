@@ -21,21 +21,23 @@ class TestRegrid(unittest.TestCase):
             --lat2   67.17736362            \\
             --lon_subscale 1                \\
             --lat_subscale 1                \\
-            --outfile regrid_test_1.mitgrid
+            --outfile regrid_test_1.mitgrid \\
+            --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
+            strict=True, verbose=False,
             mitgridfile='./data/tile005.mitgrid',
             ni=270, nj=90,
             lon1=-126.959, lat1=67.316, lon2=-126.212, lat2=67.177,
             lon_subscale=1, lat_subscale=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/regrid_test_1.mitgrid',1,1)
+            './data/regrid_test_1.mitgrid',1,1,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(newgrid,validated_grid):
-            nptest.assert_almost_equal(newgrid[a],validated_grid[b])
+            nptest.assert_almost_equal(newgrid[a],validated_grid[b],decimal=4)
 
 
     def test_regrid_2(self):
@@ -53,10 +55,12 @@ class TestRegrid(unittest.TestCase):
             --lat2   67.17736362            \\
             --lon_subscale 30               \\
             --lat_subscale 20               \\
-            --outfile regrid_test_2.mitgrid
+            --outfile regrid_test_2.mitgrid \\
+            --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
+            strict=True, verbose=False,
             mitgridfile='./data/tile005.mitgrid',
             ni=270, nj=90,
             lon1=-126.95921008, lat1=67.31607921,
@@ -64,11 +68,11 @@ class TestRegrid(unittest.TestCase):
             lon_subscale=30, lat_subscale=20)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/regrid_test_2.mitgrid',30,20)
+            './data/regrid_test_2.mitgrid',30,20,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(newgrid,validated_grid):
-            nptest.assert_almost_equal(newgrid[a],validated_grid[b])
+            nptest.assert_almost_equal(newgrid[a],validated_grid[b],decimal=4)
 
 
     def test_regrid_3(self):
@@ -86,10 +90,12 @@ class TestRegrid(unittest.TestCase):
             --lat2   67.40168504            \\
             --lon_subscale 1                \\
             --lat_subscale 1                \\
-            --outfile regrid_test_3.mitgrid
+            --outfile regrid_test_3.mitgrid \\
+            --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
+            strict=True, verbose=False,
             mitgridfile='./data/tile005.mitgrid',
             ni=270, nj=90,
             lon1=-127.73445435, lat1=67.56064719,
@@ -97,11 +103,11 @@ class TestRegrid(unittest.TestCase):
             lon_subscale=1, lat_subscale=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/regrid_test_3.mitgrid',1,1)
+            './data/regrid_test_3.mitgrid',1,1,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(newgrid,validated_grid):
-            nptest.assert_almost_equal(newgrid[a],validated_grid[b])
+            nptest.assert_almost_equal(newgrid[a],validated_grid[b],decimal=4)
 
 
     def test_regrid_4(self):
@@ -119,10 +125,12 @@ class TestRegrid(unittest.TestCase):
             --lat2   67.40168504            \\
             --lon_subscale 10               \\
             --lat_subscale 10               \\
-            --outfile regrid_test_4.mitgrid
+            --outfile regrid_test_4.mitgrid \\
+            --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
+            strict=True, verbose=False,
             mitgridfile='./data/tile005.mitgrid',
             ni=270, nj=90,
             lon1=-127.73445435, lat1=67.56064719,
@@ -130,11 +138,11 @@ class TestRegrid(unittest.TestCase):
             lon_subscale=10, lat_subscale=10)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/regrid_test_4.mitgrid',10,10)
+            './data/regrid_test_4.mitgrid',10,10,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(newgrid,validated_grid):
-            nptest.assert_almost_equal(newgrid[a],validated_grid[b])
+            nptest.assert_almost_equal(newgrid[a],validated_grid[b],decimal=4)
 
 
     def test_regrid_5(self):
@@ -154,21 +162,23 @@ class TestRegrid(unittest.TestCase):
             --lat2   67.17736362            \\
             --lon_subscale 1                \\
             --lat_subscale 1                \\
-            --outfile regrid_test_5.mitgrid
+            --outfile regrid_test_5.mitgrid \\
+            --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
+            strict=True, verbose=False,
             xg_file='./data/tile005_XG.bin', yg_file='./data/tile005_YG.bin',
             ni=270, nj=90,
             lon1=-126.959, lat1=67.316, lon2=-126.212, lat2=67.177,
             lon_subscale=1, lat_subscale=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/regrid_test_5.mitgrid',1,1)
+            './data/regrid_test_5.mitgrid',1,1,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(newgrid,validated_grid):
-            nptest.assert_almost_equal(newgrid[a],validated_grid[b])
+            nptest.assert_almost_equal(newgrid[a],validated_grid[b],decimal=4)
 
 
     def test_regrid_6(self):
@@ -188,21 +198,23 @@ class TestRegrid(unittest.TestCase):
             --lat2   67.17736362            \\
             --lon_subscale 1                \\
             --lat_subscale 1                \\
-            --outfile regrid_test_6.mitgrid
+            --outfile regrid_test_6.mitgrid \\
+            --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.regrid.regrid(
+            strict=True, verbose=False,
             xg_file='./data/tile005_XG.csv', yg_file='./data/tile005_YG.csv',
             ni=270, nj=90,
             lon1=-126.959, lat1=67.316, lon2=-126.212, lat2=67.177,
             lon_subscale=1, lat_subscale=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/regrid_test_6.mitgrid',1,1)
+            './data/regrid_test_6.mitgrid',1,1,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(newgrid,validated_grid):
-            nptest.assert_almost_equal(newgrid[a],validated_grid[b])
+            nptest.assert_almost_equal(newgrid[a],validated_grid[b],decimal=4)
 
     def test_regrid_7(self):
         """Tests 1x1 'remeshing' of llc 90 tile 005 and compares subset of differences."""
@@ -219,6 +231,7 @@ class TestRegrid(unittest.TestCase):
 
         # 1x1 "regrid":
         (mg_new,mg_new_ni,mg_new_nj) = sg.regrid.regrid(
+            strict=True, verbose=False,
             mitgridfile=tile,
             ni=270, nj=90,
             lon1=mg['XG'][0,-1], lat1=mg['YG'][0,-1],   # "NW"

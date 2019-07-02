@@ -4,7 +4,7 @@ import struct
 import sys
 from . import mitgridfilefields as mgf
 
-def read_mitgridfile(filename,ni,nj,verbose=False):
+def read_mitgridfile(filename,ni,nj,strict=False,verbose=False):
     """Read a serial (plain format) grid definition file.
 
     *.mitgrid files consist of contiguous binary segments, each of nominal size
@@ -15,6 +15,9 @@ def read_mitgridfile(filename,ni,nj,verbose=False):
         filename (str): mitgrid (path and) file name.
         ni (int): number of expected nominal "east-west" grid cells.
         nj (int): number of expected nominal "north-south" grid cells.
+        strict (bool): raise error if nonzero terms found in any of the standard
+            mitgrid matrix row/column padding dimensions (e.g., last row and
+            column of XG, YG, etc.), False to ignore.
         verbose (bool): progress reporting to stdio.
 
     Returns:
@@ -23,8 +26,7 @@ def read_mitgridfile(filename,ni,nj,verbose=False):
             mitgridfilefields module.
 
     Raises:
-        RuntimeError: If any matrix resize operation attempts to delete nonzero
-            row/column data (indicating improper input assumptions).
+        RuntimeError: If strict=True flags nonzero terms (see strict).
 
     Comments:
         - Nominal "north-south"/"east-west" directions depend on the particular
@@ -36,7 +38,8 @@ def read_mitgridfile(filename,ni,nj,verbose=False):
 
     Examples:
         >>> # llc 90 gridfile:
-        >>> mitgrid_matrices = read_mitgridfile( './tests/tile005.mitgrid', 270, 90, True)
+        >>> mitgrid_matrices = read_mitgridfile(
+            './tests/tile005.mitgrid', 270, 90, strict=True, verbose=True)
         reading 394576 doubles from tile005.mitgrid...  done.
         formatting XC  (270x90)...  done.
         formatting YC  (270x90)...  done.
@@ -100,9 +103,14 @@ def read_mitgridfile(filename,ni,nj,verbose=False):
             rawdata[start:end],(ni+1,nj+1),order=mgf.order)
         # instead of:
         # mitgrid_matrices[name] = np.reshape(rawdata[0][name],(ni+1,nj+1),order=mgf.order)
-        if  (not ni_del and any(mitgrid_matrices[name][ni,:])) \
-            or \
-            (not nj_del and any(mitgrid_matrices[name][:,nj])):
+        if strict and \
+            (   (not ni_del and any(mitgrid_matrices[name][ni,:]))
+                or
+                (not nj_del and any(mitgrid_matrices[name][:,nj]))
+            ):
+        #if  (not ni_del and any(mitgrid_matrices[name][ni,:])) \
+        #    or \
+        #    (not nj_del and any(mitgrid_matrices[name][:,nj])):
             raise RuntimeError(
                 'trying to trim nonzero rows or columns from {0}'.format(name))
         if verbose:

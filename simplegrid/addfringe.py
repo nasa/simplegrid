@@ -18,46 +18,56 @@ def create_parser():
             Determine whether or not a common edge exists between two tiles and,
             if so, use data from the second ('B') to compute boundary grid data
             for the first ('A').""")
-    parser.add_argument('--tilea', help="""
+    parser.add_argument('--tilea', required=True, help="""
         (path and) file name of tile whose boundary grid information is to be
         computed using tile 'B' data (mitgridfile format)""")
-    parser.add_argument('--nia', type=int, help="""
+    parser.add_argument('--nia', type=int, required=True, help="""
         number of tracer points in model grid 'x' direction for tile A""")
-    parser.add_argument('--nja', type=int, help="""
+    parser.add_argument('--nja', type=int, required=True, help="""
         number of tracer points in model grid 'y' direction for tile A""")
-    parser.add_argument('--tileb', help="""
+    parser.add_argument('--tileb', required=True, help="""
         (path and) file name of tile whose data will be used to compute tile 'A'
         boundary grid information (mitgridfile format)""")
-    parser.add_argument('--nib', type=int, help="""
+    parser.add_argument('--nib', type=int, required=True, help="""
         number of tracer points in model grid 'x' direction for tile B""")
-    parser.add_argument('--njb', type=int, help="""
+    parser.add_argument('--njb', type=int, required=True, help="""
         number of tracer points in model grid 'y' direction for tile B""")
-    parser.add_argument('--outfile', help="""
+    parser.add_argument('--outfile', required=True, help="""
         file to which updated tile 'A' will be written (mitgridfile format)""")
-    parser.add_argument('-v','--verbose',action='store_true',help="""
-        verbose output""")
+    parser.add_argument('-s','--strict',action='store_true', help="""
+        raise error if nonzero terms found in any of the standard mitgrid matrix
+        row/colum padding dimensions (e.g., last row and column of XG, YG,
+        etc.)""")
+    parser.add_argument('-v','--verbose',action='store_true',
+        help="""verbose output""")
     return parser
 
 
-def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
+def addfringe( strict=False, verbose=False, **kwargs):
     """Determine whether or not a common edge exists between two tiles and, if
     so, use data from the second ('B') to compute boundary grid data for the
     first ('A').
 
     Args:
-        tilea (str): mitgrid (path and) filename of tile for which boundary data
-            are to be computed.
-        nia (int): number of tracer points in the model grid 'x' direction for
-            tilea.
-        nja (int): number of tracer points in the model grid 'y' direction for
-            tilea.
-        tileb (str): mitgrid (path and) filename of tile that will be used to
-            compute boundary data for tilea.
-        nib (int): number of tracer points in the model grid 'x' direction for
-            tileb.
-        njb (int): number of tracer points in the model grid 'y' direction for
-            tileb.
+        strict (bool): True to raise error if nonzero terms found in any of the
+            standard mitgrid matrix row/column padding dimensions (e.g., last
+            row and column of XG, YG, etc.), False to ignore.
         verbose (bool): True for diagnostic output, False otherwise.
+        **kwargs: Additional keyword arguments.
+
+    Kwargs:
+        tilea (str, required): mitgrid (path and) filename of tile for which
+            boundary data are to be computed.
+        nia (int, required): number of tracer points in the model grid 'x'
+            direction for tilea.
+        nja (int, required): number of tracer points in the model grid 'y'
+            direction for tilea.
+        tileb (str, required): mitgrid (path and) filename of tile that will be
+            used to compute boundary data for tilea.
+        nib (int, required): number of tracer points in the model grid 'x'
+            direction for tileb.
+        njb (int, requried): number of tracer points in the model grid 'y'
+            direction for tileb.
 
     Returns:
         (tilea_edge,tileb_edge,new_tilea_mitgrid): tuple of tilea and tileb
@@ -65,10 +75,21 @@ def addfringe( tilea, nia, nja, tileb, nib, njb, verbose=False):
             copy of tilea (mitgrid dictionary of named numpy arrays) with
             updated boundary grid data.
 
+    Raises:
+        RuntimeError: If strict=True flags nonzero terms (see strict).
+
     """
 
-    tilea_mitgrid = gridio.read_mitgridfile( tilea, nia, nja, verbose)
-    tileb_mitgrid = gridio.read_mitgridfile( tileb, nib, njb, verbose)
+    # kwarg handling:
+    tilea   = kwargs.get('tilea')
+    nia     = kwargs.get('nia')
+    nja     = kwargs.get('nja')
+    tileb   = kwargs.get('tileb')
+    nib     = kwargs.get('nib')
+    njb     = kwargs.get('njb')
+
+    tilea_mitgrid = gridio.read_mitgridfile( tilea, nia, nja, strict, verbose)
+    tileb_mitgrid = gridio.read_mitgridfile( tileb, nib, njb, strict, verbose)
 
     geod = pyproj.Geod(ellps='sphere')
 
@@ -157,9 +178,14 @@ def main():
         print('using data from {0:s}...'.format(args.tileb))
 
     (_,_,tilea_with_new_boundary) = addfringe(
-        args.tilea, args.nia, args.nja,
-        args.tileb, args.nib, args.njb,
-        args.verbose)
+        args.strict,
+        args.verbose,
+        tilea   = args.tilea,
+        nia     = args.nia,
+        nja     = args.nja,
+        tileb   = args.tileb,
+        nib     = args.nib,
+        njb     = args.njb)
 
     if args.verbose:
         print('writing {0:s} with ni={1:d}, nj={2:d}...'.format(

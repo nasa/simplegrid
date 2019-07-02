@@ -17,15 +17,17 @@ class TestAddfringe(unittest.TestCase):
           --tileb tile_B_E_1x1.mitgrid          \\
           --nib 1                               \\
           --njb 1                               \\
-          --outfile addfringe_A_EW_1x1.mitgrid
+          --outfile addfringe_A_EW_1x1.mitgrid  \\
+          --strict
         """
 
         (tilea_edge,tileb_edge,new_tilea_grid) = sg.addfringe.addfringe(
-            './data/tile_A_1x1.mitgrid',1,1,
-            './data/tile_B_E_1x1.mitgrid',1,1)
+            strict=True,
+            tilea='./data/tile_A_1x1.mitgrid',nia=1,nja=1,
+            tileb='./data/tile_B_E_1x1.mitgrid',nib=1,njb=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/addfringe_A_EW_1x1.mitgrid',1,1)
+            './data/addfringe_A_EW_1x1.mitgrid',1,1,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(new_tilea_grid,validated_grid):
@@ -44,15 +46,17 @@ class TestAddfringe(unittest.TestCase):
           --tileb tile_B_N_1x1.mitgrid          \\
           --nib 1                               \\
           --njb 1                               \\
-          --outfile addfringe_A_NS_1x1.mitgrid
+          --outfile addfringe_A_NS_1x1.mitgrid  \\
+          --strict
         """
 
         (tilea_edge,tileb_edge,new_tilea_grid) = sg.addfringe.addfringe(
-            './data/tile_A_1x1.mitgrid',1,1,
-            './data/tile_B_N_1x1.mitgrid',1,1)
+            strict=True,
+            tilea='./data/tile_A_1x1.mitgrid',nia=1,nja=1,
+            tileb='./data/tile_B_N_1x1.mitgrid',nib=1,njb=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/addfringe_A_NS_1x1.mitgrid',1,1)
+            './data/addfringe_A_NS_1x1.mitgrid',1,1,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(new_tilea_grid,validated_grid):
@@ -71,15 +75,17 @@ class TestAddfringe(unittest.TestCase):
           --tileb tile_B_W_1x1.mitgrid          \\
           --nib 1                               \\
           --njb 1                               \\
-          --outfile addfringe_A_WE_1x1.mitgrid
+          --outfile addfringe_A_WE_1x1.mitgrid  \\
+          --strict
         """
 
         (tilea_edge,tileb_edge,new_tilea_grid) = sg.addfringe.addfringe(
-            './data/tile_A_1x1.mitgrid',1,1,
-            './data/tile_B_W_1x1.mitgrid',1,1)
+            strict=True,
+            tilea='./data/tile_A_1x1.mitgrid',nia=1,nja=1,
+            tileb='./data/tile_B_W_1x1.mitgrid',nib=1,njb=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/addfringe_A_WE_1x1.mitgrid',1,1)
+            './data/addfringe_A_WE_1x1.mitgrid',1,1,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(new_tilea_grid,validated_grid):
@@ -98,15 +104,17 @@ class TestAddfringe(unittest.TestCase):
           --tileb tile_B_S_1x1.mitgrid          \\
           --nib 1                               \\
           --njb 1                               \\
-          --outfile addfringe_A_SN_1x1.mitgrid
+          --outfile addfringe_A_SN_1x1.mitgrid  \\
+          --strict
         """
 
         (tilea_edge,tileb_edge,new_tilea_grid) = sg.addfringe.addfringe(
-            './data/tile_A_1x1.mitgrid',1,1,
-            './data/tile_B_S_1x1.mitgrid',1,1)
+            strict=True,
+            tilea='./data/tile_A_1x1.mitgrid',nia=1,nja=1,
+            tileb='./data/tile_B_S_1x1.mitgrid',nib=1,njb=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/addfringe_A_SN_1x1.mitgrid',1,1)
+            './data/addfringe_A_SN_1x1.mitgrid',1,1,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(new_tilea_grid,validated_grid):
@@ -125,15 +133,17 @@ class TestAddfringe(unittest.TestCase):
           --tileb tile_B_E_2x2.mitgrid          \\
           --nib 2                               \\
           --njb 2                               \\
-          --outfile addfringe_A_EW_2x2.mitgrid
+          --outfile addfringe_A_EW_2x2.mitgrid  \\
+          --strict
         """
 
         (tilea_edge,tileb_edge,new_tilea_grid) = sg.addfringe.addfringe(
-            './data/tile_A_2x2.mitgrid',2,2,
-            './data/tile_B_E_2x2.mitgrid',2,2)
+            strict=True,
+            tilea='./data/tile_A_2x2.mitgrid',nia=2,nja=2,
+            tileb='./data/tile_B_E_2x2.mitgrid',nib=2,njb=2)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/addfringe_A_EW_2x2.mitgrid',2,2)
+            './data/addfringe_A_EW_2x2.mitgrid',2,2,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(new_tilea_grid,validated_grid):
@@ -152,15 +162,17 @@ class TestAddfringe(unittest.TestCase):
           --tileb tile_B_N_2x2.mitgrid          \\
           --nib 2                               \\
           --njb 2                               \\
-          --outfile addfringe_A_NS_2x2.mitgrid
+          --outfile addfringe_A_NS_2x2.mitgrid  \\
+          --strict
         """
 
         (tilea_edge,tileb_edge,new_tilea_grid) = sg.addfringe.addfringe(
-            './data/tile_A_2x2.mitgrid',2,2,
-            './data/tile_B_N_2x2.mitgrid',2,2)
+            strict=True,
+            tilea='./data/tile_A_2x2.mitgrid',nia=2,nja=2,
+            tileb='./data/tile_B_N_2x2.mitgrid',nib=2,njb=2)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/addfringe_A_NS_2x2.mitgrid',2,2)
+            './data/addfringe_A_NS_2x2.mitgrid',2,2,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(new_tilea_grid,validated_grid):
@@ -179,15 +191,17 @@ class TestAddfringe(unittest.TestCase):
           --tileb tile_B_W_2x2.mitgrid          \\
           --nib 2                               \\
           --njb 2                               \\
-          --outfile addfringe_A_WE_2x2.mitgrid
+          --outfile addfringe_A_WE_2x2.mitgrid  \\
+          --strict
         """
 
         (tilea_edge,tileb_edge,new_tilea_grid) = sg.addfringe.addfringe(
-            './data/tile_A_2x2.mitgrid',2,2,
-            './data/tile_B_W_2x2.mitgrid',2,2)
+            strict=True,
+            tilea='./data/tile_A_2x2.mitgrid',nia=2,nja=2,
+            tileb='./data/tile_B_W_2x2.mitgrid',nib=2,njb=2)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/addfringe_A_WE_2x2.mitgrid',2,2)
+            './data/addfringe_A_WE_2x2.mitgrid',2,2,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(new_tilea_grid,validated_grid):
@@ -206,15 +220,17 @@ class TestAddfringe(unittest.TestCase):
           --tileb tile_B_S_2x2.mitgrid          \\
           --nib 2                               \\
           --njb 2                               \\
-          --outfile addfringe_A_SN_2x2.mitgrid
+          --outfile addfringe_A_SN_2x2.mitgrid  \\
+          --strict
         """
 
         (tilea_edge,tileb_edge,new_tilea_grid) = sg.addfringe.addfringe(
-            './data/tile_A_2x2.mitgrid',2,2,
-            './data/tile_B_S_2x2.mitgrid',2,2)
+            strict=True,
+            tilea='./data/tile_A_2x2.mitgrid',nia=2,nja=2,
+            tileb='./data/tile_B_S_2x2.mitgrid',nib=2,njb=2)
 
         validated_grid = sg.gridio.read_mitgridfile(
-            './data/addfringe_A_SN_2x2.mitgrid',2,2)
+            './data/addfringe_A_SN_2x2.mitgrid',2,2,True,False)
 
         # individual comparison of dictionary-stored numpy arrays:
         for a,b in zip(new_tilea_grid,validated_grid):

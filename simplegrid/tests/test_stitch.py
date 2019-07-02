@@ -16,12 +16,14 @@ class TestStitch(unittest.TestCase):
           --tileb tile_B_E_1x1.mitgrid          \\
           --nib 1                               \\
           --njb 1                               \\
-          --outfile stitch_AB_EW_2x1.mitgrid
+          --outfile stitch_AB_EW_2x1.mitgrid    \\
+          --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.stitch.stitch(
-            './data/tile_A_1x1.mitgrid',1,1,
-            './data/tile_B_E_1x1.mitgrid',1,1)
+            strict=True, verbose=False,
+            tilea='./data/tile_A_1x1.mitgrid', nia=1, nja=1,
+            tileb='./data/tile_B_E_1x1.mitgrid', nib=1, njb=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/stitch_AB_EW_2x1.mitgrid',2,1)
@@ -42,12 +44,14 @@ class TestStitch(unittest.TestCase):
           --tileb tile_B_N_1x1.mitgrid          \\
           --nib 1                               \\
           --njb 1                               \\
-          --outfile stitch_AB_NS_1x2.mitgrid
+          --outfile stitch_AB_NS_1x2.mitgrid    \\
+          --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.stitch.stitch(
-            './data/tile_A_1x1.mitgrid',1,1,
-            './data/tile_B_N_1x1.mitgrid',1,1)
+            strict=True, verbose=False,
+            tilea='./data/tile_A_1x1.mitgrid', nia=1, nja=1,
+            tileb='./data/tile_B_N_1x1.mitgrid', nib=1, njb=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/stitch_AB_NS_1x2.mitgrid',1,2)
@@ -68,12 +72,14 @@ class TestStitch(unittest.TestCase):
           --tileb tile_B_W_1x1.mitgrid          \\
           --nib 1                               \\
           --njb 1                               \\
-          --outfile stitch_AB_WE_2x1.mitgrid
+          --outfile stitch_AB_WE_2x1.mitgrid    \\
+          --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.stitch.stitch(
-            './data/tile_A_1x1.mitgrid',1,1,
-            './data/tile_B_W_1x1.mitgrid',1,1)
+            strict=True, verbose=False,
+            tilea='./data/tile_A_1x1.mitgrid', nia=1, nja=1,
+            tileb='./data/tile_B_W_1x1.mitgrid', nib=1, njb=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/stitch_AB_WE_2x1.mitgrid',2,1)
@@ -94,12 +100,14 @@ class TestStitch(unittest.TestCase):
           --tileb tile_B_S_1x1.mitgrid          \\
           --nib 1                               \\
           --njb 1                               \\
-          --outfile stitch_AB_SN_1x2.mitgrid
+          --outfile stitch_AB_SN_1x2.mitgrid    \\
+          --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.stitch.stitch(
-            './data/tile_A_1x1.mitgrid',1,1,
-            './data/tile_B_S_1x1.mitgrid',1,1)
+            strict=True, verbose=False,
+            tilea='./data/tile_A_1x1.mitgrid', nia=1, nja=1,
+            tileb='./data/tile_B_S_1x1.mitgrid', nib=1, njb=1)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/stitch_AB_SN_1x2.mitgrid',1,2)
@@ -120,12 +128,14 @@ class TestStitch(unittest.TestCase):
           --tileb tile_B_E_2x2.mitgrid          \\
           --nib 2                               \\
           --njb 2                               \\
-          --outfile stitch_AB_EW_4x2.mitgrid
+          --outfile stitch_AB_EW_4x2.mitgrid    \\
+          --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.stitch.stitch(
-            './data/tile_A_2x2.mitgrid',2,2,
-            './data/tile_B_E_2x2.mitgrid',2,2)
+            strict=True, verbose=False,
+            tilea='./data/tile_A_2x2.mitgrid', nia=2, nja=2,
+            tileb='./data/tile_B_E_2x2.mitgrid', nib=2, njb=2)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/stitch_AB_EW_4x2.mitgrid',4,2)
@@ -146,12 +156,14 @@ class TestStitch(unittest.TestCase):
           --tileb tile_B_N_2x2.mitgrid          \\
           --nib 2                               \\
           --njb 2                               \\
-          --outfile stitch_AB_NS_2x4.mitgrid
+          --outfile stitch_AB_NS_2x4.mitgrid    \\
+          --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.stitch.stitch(
-            './data/tile_A_2x2.mitgrid',2,2,
-            './data/tile_B_N_2x2.mitgrid',2,2)
+            strict=True, verbose=False,
+            tilea='./data/tile_A_2x2.mitgrid', nia=2, nja=2,
+            tileb='./data/tile_B_N_2x2.mitgrid', nib=2, njb=2)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/stitch_AB_NS_2x4.mitgrid',2,4)
@@ -172,12 +184,14 @@ class TestStitch(unittest.TestCase):
           --tileb tile_B_W_2x2.mitgrid          \\
           --nib 2                               \\
           --njb 2                               \\
-          --outfile stitch_AB_WE_4x2.mitgrid
+          --outfile stitch_AB_WE_4x2.mitgrid    \\
+          --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.stitch.stitch(
-            './data/tile_A_2x2.mitgrid',2,2,
-            './data/tile_B_W_2x2.mitgrid',2,2)
+            strict=True, verbose=False,
+            tilea='./data/tile_A_2x2.mitgrid', nia=2, nja=2,
+            tileb='./data/tile_B_W_2x2.mitgrid', nib=2, njb=2)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/stitch_AB_WE_4x2.mitgrid',4,2)
@@ -198,12 +212,14 @@ class TestStitch(unittest.TestCase):
           --tileb tile_B_S_2x2.mitgrid          \\
           --nib 2                               \\
           --njb 2                               \\
-          --outfile stitch_AB_SN_2x4.mitgrid
+          --outfile stitch_AB_SN_2x4.mitgrid    \\
+          --strict
         """
 
         (newgrid,newgrid_ni,newgrid_nj) = sg.stitch.stitch(
-            './data/tile_A_2x2.mitgrid',2,2,
-            './data/tile_B_S_2x2.mitgrid',2,2)
+            strict=True, verbose=False,
+            tilea='./data/tile_A_2x2.mitgrid', nia=2, nja=2,
+            tileb='./data/tile_B_S_2x2.mitgrid', nib=2, njb=2)
 
         validated_grid = sg.gridio.read_mitgridfile(
             './data/stitch_AB_SN_2x4.mitgrid',2,4)

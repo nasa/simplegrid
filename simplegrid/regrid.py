@@ -32,41 +32,48 @@ def create_parser():
     parser.add_argument('--yg_file', help="""
         YG (path and) file input alternative to mitgridfile (see --xg_file
         comments)""")
-    parser.add_argument('--ni', type=int, help="""
+    parser.add_argument('--ni', type=int, required=True, help="""
         number of tracer points in model grid 'x' direction""")
-    parser.add_argument('--nj', type=int, help="""
+    parser.add_argument('--nj', type=int, required=True, help="""
         number of tracer points in model grid 'y' direction""")
-    parser.add_argument('--lon1', type=float, help="""
+    parser.add_argument('--lon1', type=float, required=True, help="""
         longitude of northwest corner point""")
-    parser.add_argument('--lat1', type=float, help="""
+    parser.add_argument('--lat1', type=float, required=True, help="""
         latitude of northwest corner point""")
-    parser.add_argument('--lon2', type=float, help="""
+    parser.add_argument('--lon2', type=float, required=True, help="""
         longitude of southeast corner point""")
-    parser.add_argument('--lat2', type=float, help="""
+    parser.add_argument('--lat2', type=float, required=True, help="""
         latitude of southeast corner point""")
-    parser.add_argument('--lon_subscale', type=int, help="""
+    parser.add_argument('--lon_subscale', type=int, required=True, help="""
         subscale factor to be applied to each cell in the model grid 'x'
         direction (e.g., '2' doubles the number of x-direction cells)
         (integer>=1)""")
-    parser.add_argument('--lat_subscale', type=int, help="""
+    parser.add_argument('--lat_subscale', type=int, required=True, help="""
         subscale factor to be applied to each cell in the model grid 'y'
         direction (see --lon_subscale comments) (integer>=1)""")
-    parser.add_argument('--outfile', help="""
+    parser.add_argument('--outfile', required=True, help="""
         file to which regridded matrices will be written (mitgridfile
         format)""")
+    parser.add_argument('-s','--strict',action='store_true', help="""
+        raise error if nonzero terms found in any of the standard mitgrid matrix
+        row/colum padding dimensions (e.g., last row and column of XG, YG,
+        etc.)""")
     parser.add_argument('-v','--verbose',action='store_true',help="""
         verbose output""")
     return parser
 
 
-def regrid( verbose=False, **kwargs):
+def regrid( strict=False, verbose=False, **kwargs):
     """Regrids a rectangular lon/lat region using simple great circle-based
     subdivision, preserving any corner grids that may already exist within the
     region. A normal spherical geoid is currently assumed.
 
     Args:
+        strict (bool, optional): True to raise error if nonzero terms found in
+            any of the standard mitgrid matrix row/column padding dimensions
+            (e.g., last row and column of XG, YG, etc.), False to ignore.
         verbose (bool, optional): True for diagnostic output, False otherwise.
-        **kwargs: Arbitrary keyword arguments.
+        **kwargs: Additional keyword arguments.
 
     Kwargs:
         mitgridfile (str, required if no xg_file, yg_file or mitgrid_matrices):
@@ -99,6 +106,12 @@ def regrid( verbose=False, **kwargs):
             newly-regridded subdomain matrices (ref. mitgridfilefields.py for
             names and ordering), and regridded ni, nj subdomain cell counts.
 
+    Raises:
+        RuntimeError: If strict=True flags nonzero terms (see strict).
+        ValueError: If none of mitgridfile, xg_file/yg_file pair, or
+            mitgrid_matrices are provided, or if lon/lat input pairs are not
+            diagonally-located.
+
     Note:
         Corner point information (lon1/lat1, lon2/lat2) can be either literal
         northwest/southeast corners, or diagonal corners provided simply for
@@ -123,7 +136,8 @@ def regrid( verbose=False, **kwargs):
 
     # read XG, YG data from source provided:
     if mitgridfile:
-        mitgrid = gridio.read_mitgridfile( mitgridfile, ni, nj, verbose)
+        mitgrid = gridio.read_mitgridfile( mitgridfile, ni, nj, strict, verbose)
+
     elif xg_file and yg_file:
         mitgrid = {key:None for key in mitgridfilefields.names}
         if os.path.splitext(xg_file)[1] == '.csv' and \
@@ -303,6 +317,7 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
     (newgrid,ni_regridded,nj_regridded) = regrid(
+        args.strict,
         args.verbose,
         mitgridfile = args.mitgridfile,
         xg_file     = args.xg_file,

@@ -15,61 +15,80 @@ def create_parser():
     parser = argparse.ArgumentParser(
         description="""
             Join two tiles along a common edge.""")
-    parser.add_argument('--tilea', help="""
+    parser.add_argument('--tilea', required=True, help="""
         (path and) file name of first tile (mitgridfile format)""")
-    parser.add_argument('--nia', type=int, help="""
+    parser.add_argument('--nia', type=int, required=True, help="""
         number of tracer points in model grid 'x' direction for the first
         tile""")
-    parser.add_argument('--nja', type=int, help="""
+    parser.add_argument('--nja', type=int, required=True, help="""
         number of tracer points in model grid 'y' direction for the first
         tile""")
-    parser.add_argument('--tileb', help="""
+    parser.add_argument('--tileb', required=True, help="""
         (path and) file name of second tile (mitgridfile format)""")
-    parser.add_argument('--nib', type=int, help="""
+    parser.add_argument('--nib', type=int, required=True, help="""
         number of tracer points in model grid 'x' direction for the second
         tile""")
-    parser.add_argument('--njb', type=int, help="""
+    parser.add_argument('--njb', type=int, required=True, help="""
         number of tracer points in model grid 'y' direction for the second
         tile""")
-    parser.add_argument('--outfile', help="""
+    parser.add_argument('--outfile', required=True, help="""
         file to which combined tiles will be written (mitgridfile format)""")
+    parser.add_argument('-s','--strict',action='store_true', help="""
+        raise error if nonzero terms found in any of the standard mitgrid matrix
+        row/colum padding dimensions (e.g., last row and column of XG, YG,
+        etc.)""")
     parser.add_argument('-v','--verbose',action='store_true',help="""
         verbose output""")
     return parser
 
 
-def stitch(tilea_file,nia,nja,tileb_file,nib,njb,verbose=False):
+def stitch( strict=False, verbose=False, **kwargs):
     """Join two tiles along a common edge.
 
     Args:
-        tilea_file (str): (path and) filename of first tile (mitgridfile
-            format).
-        nia (int): number of tracer points in the model grid 'x' direction for
-            tile a.
-        nja (int): number of tracer points in the model grid 'y' direction for
-            tile a.
-        tileb_file (str): (path and) filename of second tile (mitgridfile
-            format).
-        nib (int): number of tracer points in the model grid 'x' direction for
-            tile b.
-        njb (int): number of tracer points in the model grid 'y' direction for
-            tile b.
+        strict (bool): True to raise error if nonzero terms found in any of the
+            standard mitgrid matrix row/column padding dimensions (e.g., last
+            row and column of XG, YG, etc.), False to ignore.
         verbose (bool): True for diagnostic output, False otherwise.
+
+    Kwargs:
+        tilea (str, required): mitgrid (path and) filename of first tile.
+        nia (int, required): number of tracer points in the model grid 'x'
+            direction for tile a.
+        nja (int, required): number of tracer points in the model grid 'y'
+            direction for tile a.
+        tileb (str, required): mitgrid (path and) filename of second tile.
+        nib (int, required): number of tracer points in the model grid 'x'
+            direction for tile b.
+        njb (int, required): number of tracer points in the model grid 'y'
+            direction for tile b.
 
     Returns:
         (c,nic,njc): combined tile (mitgrid dictionary of named numpy arrays)
             and corresponding tracer point counts in the combined model grid 'x'
             and 'y' directions.
 
+    Raises:
+        RuntimeError: If strict=True flags nonzero terms (see strict).
+
     """
+
+    # kwarg handling:
+    tilea   = kwargs.get('tilea')
+    nia     = kwargs.get('nia')
+    nja     = kwargs.get('nja')
+    tileb   = kwargs.get('tileb')
+    nib     = kwargs.get('nib')
+    njb     = kwargs.get('njb')
 
     # calculate "cross-border" terms using addfringe(), store in tile 'a' with
     # updated 'fringe':
     (tilea_edge,tileb_edge,a) = addfringe.addfringe(
-        tilea_file,nia,nja,tileb_file,nib,njb,verbose)
+        strict, verbose, tilea=tilea, nia=nia, nja=nja, tileb=tileb, nib=nib,
+        njb=njb)
 
     # read tile b into mitgrid data structure:
-    b = gridio.read_mitgridfile( tileb_file, nib, njb, verbose)
+    b = gridio.read_mitgridfile( tileb, nib, njb, strict, verbose)
 
     # initialization:
     c = {key:None for key in mitgridfilefields.names}
@@ -191,9 +210,13 @@ def main():
             args.tilea,args.tileb))
 
     (c,nic,njc) = stitch(
-        args.tilea, args.nia, args.nja,
-        args.tileb, args.nib, args.njb,
-        args.verbose)
+        args.strict, args.verbose,
+        tilea   = args.tilea,
+        nia     = args.nia,
+        nja     = args.nja,
+        tileb   = args.tileb,
+        nib     = args.nib,
+        njb     = args.njb)
 
     if args.verbose:
         print(

@@ -15,7 +15,8 @@ sgaddfringe                             \
   --tileb tile_B_E_1x1.mitgrid          \
   --nib 1                               \
   --njb 1                               \
-  --outfile addfringe_A_EW_1x1.mitgrid
+  --outfile addfringe_A_EW_1x1.mitgrid  \
+  --strict
 
 # test_addfringe_2:
 sgaddfringe                             \
@@ -25,7 +26,8 @@ sgaddfringe                             \
   --tileb tile_B_N_1x1.mitgrid          \
   --nib 1                               \
   --njb 1                               \
-  --outfile addfringe_A_NS_1x1.mitgrid
+  --outfile addfringe_A_NS_1x1.mitgrid  \
+  --strict
 
 # test_addfringe_3:
 sgaddfringe                             \
@@ -35,7 +37,8 @@ sgaddfringe                             \
   --tileb tile_B_W_1x1.mitgrid          \
   --nib 1                               \
   --njb 1                               \
-  --outfile addfringe_A_WE_1x1.mitgrid
+  --outfile addfringe_A_WE_1x1.mitgrid  \
+  --strict
 
 # test_addfringe_4:
 sgaddfringe                             \
@@ -45,7 +48,8 @@ sgaddfringe                             \
   --tileb tile_B_S_1x1.mitgrid          \
   --nib 1                               \
   --njb 1                               \
-  --outfile addfringe_A_SN_1x1.mitgrid
+  --outfile addfringe_A_SN_1x1.mitgrid  \
+  --strict
 
 
 # 2x2 tile tests:
@@ -58,7 +62,8 @@ sgaddfringe                             \
   --tileb tile_B_E_2x2.mitgrid          \
   --nib 2                               \
   --njb 2                               \
-  --outfile addfringe_A_EW_2x2.mitgrid
+  --outfile addfringe_A_EW_2x2.mitgrid  \
+  --strict
 
 # test_addfringe_6:
 sgaddfringe                             \
@@ -68,7 +73,8 @@ sgaddfringe                             \
   --tileb tile_B_N_2x2.mitgrid          \
   --nib 2                               \
   --njb 2                               \
-  --outfile addfringe_A_NS_2x2.mitgrid
+  --outfile addfringe_A_NS_2x2.mitgrid  \
+  --strict
 
 # test_addfringe_7:
 sgaddfringe                             \
@@ -78,7 +84,8 @@ sgaddfringe                             \
   --tileb tile_B_W_2x2.mitgrid          \
   --nib 2                               \
   --njb 2                               \
-  --outfile addfringe_A_WE_2x2.mitgrid
+  --outfile addfringe_A_WE_2x2.mitgrid  \
+  --strict
 
 # test_addfringe_8:
 sgaddfringe                             \
@@ -88,5 +95,6 @@ sgaddfringe                             \
   --tileb tile_B_S_2x2.mitgrid          \
   --nib 2                               \
   --njb 2                               \
-  --outfile addfringe_A_SN_2x2.mitgrid
+  --outfile addfringe_A_SN_2x2.mitgrid  \
+  --strict
 

@@ -14,7 +14,8 @@ sgregrid \
     --lat2   67.17736362            \
     --lon_subscale 1                \
     --lat_subscale 1                \
-    --outfile regrid_test_1.mitgrid
+    --outfile regrid_test_1.mitgrid \
+    --strict
 
 # test_regrid_2:
 sgregrid \
@@ -27,7 +28,8 @@ sgregrid \
     --lat2   67.17736362            \
     --lon_subscale 30               \
     --lat_subscale 20               \
-    --outfile regrid_test_2.mitgrid
+    --outfile regrid_test_2.mitgrid \
+    --strict
 
 # test_regrid_3:
 sgregrid \
@@ -40,7 +42,8 @@ sgregrid \
     --lat2   67.40168504            \
     --lon_subscale 1                \
     --lat_subscale 1                \
-    --outfile regrid_test_3.mitgrid
+    --outfile regrid_test_3.mitgrid \
+    --strict
 
 # test_regrid_4:
 sgregrid \
@@ -53,7 +56,8 @@ sgregrid \
     --lat2   67.40168504            \
     --lon_subscale 10               \
     --lat_subscale 10               \
-    --outfile regrid_test_4.mitgrid
+    --outfile regrid_test_4.mitgrid \
+    --strict
 
 # test_regrid_5:
 sgregrid \
@@ -67,7 +71,8 @@ sgregrid \
     --lat2   67.17736362            \
     --lon_subscale 1                \
     --lat_subscale 1                \
-    --outfile regrid_test_5.mitgrid
+    --outfile regrid_test_5.mitgrid \
+    --strict
 
 # test_regrid_6:
 sgregrid \
@@ -81,5 +86,6 @@ sgregrid \
     --lat2   67.17736362            \
     --lon_subscale 1                \
     --lat_subscale 1                \
-    --outfile regrid_test_6.mitgrid
+    --outfile regrid_test_6.mitgrid \
+    --strict
 
