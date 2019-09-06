@@ -65,8 +65,8 @@ def create_parser():
 
 def regrid( strict=False, verbose=False, **kwargs):
     """Regrids a rectangular lon/lat region using simple great circle-based
-    subdivision, preserving any corner grids that may already exist within the
-    region. A normal spherical geoid is currently assumed.
+    subdivision, preserving any tracer cell corner grids that may already exist
+    within the region. A normal spherical geoid is currently assumed.
 
     Args:
         strict (bool, optional): True to raise error if nonzero terms found in

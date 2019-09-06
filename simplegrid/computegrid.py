@@ -62,8 +62,8 @@ def edges( compute_grid_xg, compute_grid_yg,
             with (x,y) values filled in according to cgfill().
         ilb, iub, jlb, jub (ints): row (i) and column (j) lower and upper index
             bounds that define compute_grid_xg and compute_grid_yg range for
-            edge calculations (avoids referenct to zero boundary values during
-            length calculations).
+            edge calculations (provides means of avoiding reference to zero
+            boundary values during length calculations).
         geod (pyproj.Geod): current geoid instance (only the semi-major, or
             equatorial axis radius, geod.a is used here).
         verbose (logical): verbose output
@@ -150,6 +150,15 @@ def fill( compute_grid_xg, compute_grid_yg, ilb, iub, jlb, jub,
     # i.e., start:incl(stop):stride
     incl = lambda idx : idx+1
 
+    # geod.npts computes longitudinal results in the -180 to +180 range.  If the
+    # user, however, has defined the region to be regridded using positive
+    # longitudal values only (i.e, in the 0 to 360 range), then, for consitency,
+    # convert all geod.npts results accordingly.
+    if np.any(compute_grid_xg<0.):
+        lon0to360 = False
+    else:
+        lon0to360 = True
+
     #
     # Step 1: x-edge fill-in according to user-specified subdivision level:
     #
@@ -181,20 +190,24 @@ def fill( compute_grid_xg, compute_grid_yg, ilb, iub, jlb, jub,
         lat2 = compute_grid_yg_out[
             i_cg(it.multi_index[0]+1,ilb,lon_subscale),
             j_cg(it.multi_index[1]  ,jlb,lat_subscale)]
-        x_edge_subdivided_lonlats = geod.npts(
+        x_edge_subdivided_lonlats = np.array( geod.npts(
             lon1,lat1,lon2,lat2,
-            lon_subscale*2-1)   # n intermediate points
-        # ...and store to updated compute_grid:
+            lon_subscale*2-1))  # n intermediate points
+        if lon0to360:
+            with np.nditer(x_edge_subdivided_lonlats[:,0],op_flags=['readwrite']) as it_lon:
+                for lon in it_lon:
+                    if lon<0.:
+                        lon[...] = lon+360
         compute_grid_xg_out[
             i_cg(it.multi_index[0],ilb,lon_subscale)+1:
             i_cg(it.multi_index[0]+1,ilb,lon_subscale),
             j_cg(it.multi_index[1],jlb,lat_subscale)] = \
-            np.array(x_edge_subdivided_lonlats)[:,0]
+            x_edge_subdivided_lonlats[:,0]
         compute_grid_yg_out[
             i_cg(it.multi_index[0],ilb,lon_subscale)+1:
             i_cg(it.multi_index[0]+1,ilb,lon_subscale),
             j_cg(it.multi_index[1],jlb,lat_subscale)] = \
-            np.array(x_edge_subdivided_lonlats)[:,1]
+            x_edge_subdivided_lonlats[:,1]
         it.iternext()
 
     if verbose:
@@ -234,20 +247,24 @@ def fill( compute_grid_xg, compute_grid_yg, ilb, iub, jlb, jub,
         lat2 = compute_grid_yg_out[
             i_cg(it.multi_index[0],ilb),
             j_cg(it.multi_index[1]+1,jlb,lat_subscale)]
-        y_subdivided_lonlats = geod.npts(
+        y_edge_subdivided_lonlats = np.array( geod.npts(
             lon1,lat1,lon2,lat2,
-            lat_subscale*2-1)   # n intermediate points
-        # ...and store to compute_grid:
+            lat_subscale*2-1))  # n intermediate points
+        if lon0to360:
+            with np.nditer(y_edge_subdivided_lonlats[:,0],op_flags=['readwrite']) as it_lon:
+                for lon in it_lon:
+                    if lon<0.:
+                        lon[...] = lon+360
         compute_grid_xg_out[
             i_cg(it.multi_index[0],ilb),
             j_cg(it.multi_index[1],jlb,lat_subscale)+1:
             j_cg(it.multi_index[1]+1,jlb,lat_subscale)] = \
-            np.array(y_subdivided_lonlats)[:,0]
+            y_edge_subdivided_lonlats[:,0]
         compute_grid_yg_out[
             i_cg(it.multi_index[0],ilb),
             j_cg(it.multi_index[1],jlb,lat_subscale)+1:
             j_cg(it.multi_index[1]+1,jlb,lat_subscale)] = \
-            np.array(y_subdivided_lonlats)[:,1]
+            y_edge_subdivided_lonlats[:,1]
         it.iternext()
 
     if verbose:

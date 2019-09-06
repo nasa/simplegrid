@@ -1,8 +1,9 @@
 
 """
-This module collects values used in various numerical tests that might be
-modified to better suit other applications. The values defined here have proven
-to be useful defaults for a wide range of ocean gridding tasks.
+This module collects values used in various numerical and threshold tests, and
+which have proven to be useful defaults for a wide range of ocean regridding
+tasks. They can, of course, be modified to better suit other specific
+applications.
 """
 
 POINTS_ARE_CLOSE_ENOUGH = 1.e-6
