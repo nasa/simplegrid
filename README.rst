@@ -170,13 +170,13 @@ and, from the command line::
         --lat_subscale 10               \
         --outfile regrid005.mitgrid
 
-Determining boundary quantities
+Determining boundary grid terms
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In most cases, mitgrid data that spans tracer cells is undefined along
 boundaries (for example, "U" cell quantities RAW and DXV along a tile's western
 and eastern edges).  "addfringe" functionality can compute this boundary, or
-fringe, data if an adjacent tile is provided.
+fringe, grid data if an adjacent tile is provided.
 
 The following augments a 2x2 tile with boundary data computed using an eastern
 edge-adjacent 2x2 tile:
