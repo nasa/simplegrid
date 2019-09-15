@@ -19,8 +19,8 @@ setup(
     install_requires = [
         'numpy',
         'pyproj',
-        'pyresample',
         'sphinx_rtd_theme',
+        'xesmf',
     ],
     entry_points = {
         'console_scripts': [

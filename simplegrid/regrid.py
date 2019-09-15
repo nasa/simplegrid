@@ -87,10 +87,10 @@ def regrid( strict=False, verbose=False, **kwargs):
         mitgrid_matrices (dict, required if no mitgridfile or xg_file, yg_file):
             name/value (numpy 2-d array) pairs corresponding to matrix name and
             ordering convention listed in mitgridfilefields module.
-        ni (int, required): number of tracer points in the model grid 'x'
-            direction.
-        nj (int, required): number of tracer points in the model grid 'y'
-            direction.
+        ni (int, required if mitgridfile or xg/yg_file specified): number of
+            tracer points in the model grid 'x' direction.
+        nj (int, required if mitgridfile or xg/yg_file specified): number of
+            tracer points in the model grid 'y' direction.
         lon1 (float, required): longitude of northwest corner point.
         lat1 (float, required): latitude of northwest corner point.
         lon2 (float, required): longitude of southeast corner point.
@@ -136,25 +136,33 @@ def regrid( strict=False, verbose=False, **kwargs):
 
     # read XG, YG data from source provided:
     if mitgridfile:
-        mitgrid = gridio.read_mitgridfile( mitgridfile, ni, nj, strict, verbose)
-
+        if ni and nj:
+            mitgrid = gridio.read_mitgridfile( mitgridfile, ni, nj,
+                strict, verbose)
+        else:
+            raise ValueError("ni, nj required if mitgridfile specified")
     elif xg_file and yg_file:
         mitgrid = {key:None for key in mitgridfilefields.names}
-        if os.path.splitext(xg_file)[1] == '.csv' and \
-           os.path.splitext(yg_file)[1] == '.csv':
-            # read .csv data, store in dictionary fields that read_mitgridfile
-            # would have produced:
-            mitgrid['XG'] = np.loadtxt(xg_file,delimiter=',')
-            mitgrid['YG'] = np.loadtxt(yg_file,delimiter=',')
+        if ni and nj:
+            if os.path.splitext(xg_file)[1] == '.csv' and \
+               os.path.splitext(yg_file)[1] == '.csv':
+                # read .csv data, store in dictionary fields that read_mitgridfile
+                # would have produced:
+                mitgrid['XG'] = np.loadtxt(xg_file,delimiter=',')
+                mitgrid['YG'] = np.loadtxt(yg_file,delimiter=',')
+            else:
+                # read binary column-ordered data, store in dictionary fields that
+                # read_mitgridfile would have produced:
+                XG_raw = np.fromfile(xg_file,mitgridfilefields.datatype)
+                mitgrid['XG'] = np.reshape(XG_raw,(ni+1,nj+1),order='F')
+                YG_raw = np.fromfile(yg_file,mitgridfilefields.datatype)
+                mitgrid['YG'] = np.reshape(YG_raw,(ni+1,nj+1),order='F')
         else:
-            # read binary column-ordered data, store in dictionary fields that
-            # read_mitgridfile would have produced:
-            XG_raw = np.fromfile(xg_file,mitgridfilefields.datatype)
-            mitgrid['XG'] = np.reshape(XG_raw,(ni+1,nj+1),order='F')
-            YG_raw = np.fromfile(yg_file,mitgridfilefields.datatype)
-            mitgrid['YG'] = np.reshape(YG_raw,(ni+1,nj+1),order='F')
+            raise ValueError("ni, nj required if xg/yg_file specified")
     elif mitgrid_matrices:
         mitgrid = mitgrid_matrices
+        # ni, nj from tracer cell counts:
+        (ni,nj) = mitgrid['XC'].shape
     else:
         raise ValueError(
             "Either mitgridfile, xg_file/yg_file pair, or mitgrid_matrices must be provided.")
