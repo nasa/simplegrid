@@ -80,7 +80,7 @@ def getobcs( strict=False, verbose=False, **kwargs):
         OB_Jnorth, OB_Jsouth, OB_Ieast, OB_Iwest (ones-based int vectors):
             North, south, east, and west Nx and Ny index vectors of i and j
             tracer cell indices, per MITgcm OBCS package conventions. Boundaries
-            are ignored for any index vector that is idendically zero, and
+            are ignored for any index vector that is identically zero, and
             defaults to edge tracer cell indices if not provided.
         resultsdir (str): Directory in which to store resulting open boundary
             condition arrays.  Defaults to parent_resultsdir+'_obcs'.
@@ -106,10 +106,10 @@ def getobcs( strict=False, verbose=False, **kwargs):
     ni_regional             = kwargs.get('ni_regional')
     nj_regional             = kwargs.get('nj_regional')
     parent_resultsdir       = kwargs.get('parent_resultsdir')
-    ob_jnorth   = kwargs.get('OB_Jnorth')
-    ob_jsouth   = kwargs.get('OB_Jsouth')
-    ob_ieast    = kwargs.get('OB_Ieast')
-    ob_iwest    = kwargs.get('OB_Iwest')
+    ob_jnorth               = np.array(kwargs.get('OB_Jnorth'))
+    ob_jsouth               = np.array(kwargs.get('OB_Jsouth'))
+    ob_ieast                = np.array(kwargs.get('OB_Ieast'))
+    ob_iwest                = np.array(kwargs.get('OB_Iwest'))
 
     #
     # locate global (parent) grid:
@@ -175,14 +175,50 @@ def getobcs( strict=False, verbose=False, **kwargs):
     # boundary index vectors:
     #
 
-    if not ob_iwest:
-        ob_iwest = np.ones(parent_mitgrid['XC'].shape[1],dtype=int)
-    if not ob_ieast:
-        ob_ieast = np.ones(parent_mitgrid['XC'].shape[1],dtype=int)*ni_parent
+    # accommodate the following user controls:
+    # - if an open boundary vector isn't defined (blank), assume edge tracer cells
+    # - an explicit zero vector (any length) implies no open boundary on that edge
+    # - negative indices count backwards from Nx+1, Ny+1; e.g., as documented in
+    #   MITgcm manual section 8.3.1.4 OB_Jnorth(3)=-1 means that the point (3,Ny)
+    #   is a northern OB
+
+    # defaults:
+
+    do_ob_jnorth, do_ob_jsouth, do_ob_ieast, do_ob_iwest = [True]*4
+
+    if not ob_jnorth:
+        ob_jnorth = np.ones(parent_mitgrid['XC'].shape[0],dtype=int)*nj_regional
+    elif not any(ob_jnorth!=0):
+        do_ob_jnorth = False
+
     if not ob_jsouth:
         ob_jsouth = np.ones(parent_mitgrid['XC'].shape[0],dtype=int)
-    if not ob_jnorth:
-        ob_jnorth = np.ones(parent_mitgrid['XC'].shape[0],dtype=int)*nj_parent
+    elif not any(ob_jsouth!=0):
+        do_ob_jsouth = False
+
+    if not ob_ieast:
+        ob_ieast = np.ones(parent_mitgrid['XC'].shape[1],dtype=int)*ni_regional
+    elif not any(ob_ieast!=0):
+        do_ob_ieast = False
+
+    if not ob_iwest:
+        ob_iwest = np.ones(parent_mitgrid['XC'].shape[1],dtype=int)
+    elif not any(ob_iwest!=0):
+        do_ob_iwest = False
+
+    # apply logic to negative indices and convert vectors to zeros-based:
+
+    if do_ob_jnorth:
+        ob_jnorth = np.array([nj_regional+1+j if j<0 else j for j in ob_jnorth]) - 1
+
+    if do_ob_jsouth:
+        ob_jsouth = ob_jsouth - 1
+
+    if do_ob_ieast:
+        ob_ieast = np.array([ni_regional+1+i if i<0 else i for i in ob_ieast]) - 1
+
+    if do_ob_iwest:
+        ob_iwest = ob_iwest - 1
 
     #
     # interpolators:
@@ -246,21 +282,81 @@ def getobcs( strict=False, verbose=False, **kwargs):
     #
 
     # get integer time steps from filenames:
-    retime = re.compile('\d+')
-    times = sorted( [int(retime.findall(os.path.basename(f))[0])
+    re_time = re.compile('\d+')
+    times = sorted( [int(re_time.findall(os.path.basename(f))[0])
         for f in glob.glob(os.path.join(parent_resultsdir,'T.*.data'))])
+    print('times = {0}'.format(times))
     ntimes = len(times)
     # open up a temperature file, get depths from matrix size:
-    glob.glob(os.path.join(parent_resultsdir,'T.*.data'))[0]
     T1 = mds.rdmds(os.path.join(parent_resultsdir,'T'),times[0])
     ndepths = T1.shape[0]
 
     print('ntimes/ndepths = {0}/{1}'.format(ntimes,ndepths))
 
     #
+    # put resulting controls into dictionary to help organize subsequent loops:
+    #
+
+    obs = { 'N': {
+                'do'        : do_ob_jnorth,
+                'partition' : (np.arange(len(ob_jnorth)),ob_jnorth),    # "fancy" indexing
+                'shape'     : (ni_regional,ndepths,ntimes)},
+            'S': {
+                'do'        : do_ob_jsouth,
+                'partition' : (np.arange(len(ob_jsouth)),ob_jsouth),
+                'shape'     : (ni_regional,ndepths,ntimes)},
+            'E': {
+                'do'        : do_ob_ieast,
+                'partition' : (ob_ieast,np.arange(len(ob_ieast))),
+                'shape'     : (nj_regional,ndepths,ntimes)},
+            'W': {
+                'do'        : do_ob_iwest,
+                'partition' : (ob_iwest,np.arange(len(ob_iwest))),
+                'shape'     : (nj_regional,ndepths,ntimes)},}
+
+    #
     # Apply interpolators to map from parent->regional, and partition solutions
     # accordingly:
     #
+
+    # tracer cell-related responses:
+    responses = ['T','S']   # <-- 'Eta' to do: special logic to skip depths
+    for response in responses:
+        if glob.glob(os.path.join(parent_resultsdir,response+'.*.data')):
+            if verbose:
+                print("computing obcs for '{0}'...".format(response))
+            # if results exist in database, allocate boundary matrices for this
+            # particular response:
+            for ob,obvals in obs.items():
+                if obvals['do']:
+                    obs[ob]['ob_array'] = np.zeros(obvals['shape'])
+            # for this reponse, and for selected boundaries, assemble boundary
+            # matrices for all depths, times
+            for time_idx,time in enumerate(times):
+                # get parent results for this response, for this time...:
+                parent_results = mds.rdmds(os.path.join(parent_resultsdir,response),time).T
+                # for each depth...:
+                for depth_idx in range(parent_results.shape[2]):
+                    # ... interpolate to the regional grid...:
+                    regional_results = tracer_regridder(parent_results[:,:,depth_idx])
+                    # ... and insert the boundary partitions for the requested
+                    # N, S, E, W boundary matrices for this depth, time:
+                    for ob,obvals in obs.items():
+                        if obvals['do']:
+                            obs[ob]['ob_array'][:,depth_idx,time_idx] = \
+                                regional_results[obs[ob]['partition']]
+                        if depth_idx==0 and time_idx==0:
+                            print('{0} compare:'.format(ob))
+                            if 'N'==ob:
+                                print(regional_results[:,-1])
+                            elif 'S'==ob:
+                                print(regional_results[:,0])
+                            elif 'E'==ob:
+                                print(regional_results[-1,:])
+                            elif 'W'==ob:
+                                print(regional_results[0,:])
+                            print(obs[ob]['ob_array'][:,depth_idx,time_idx])
+
 
     # failed experiment: keep, for now. attempted to interpolate just to string
     # of points as opposed to a grid.
@@ -285,7 +381,9 @@ def getobcs( strict=False, verbose=False, **kwargs):
     #    tracer_region_west_regridder = xe.Regridder(
     #        ds_tracer_parent, ds_tracer_region_west, 'bilinear')
 
-
+#T, S, U, V, Eta, W, UICE, VICE
+#
+# runtime parameters:
 #OB[N/S/E/W][t/s/u/v]File
 #if present,
 #OB[N/S/E/W]etaFile
