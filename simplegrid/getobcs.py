@@ -185,22 +185,18 @@ def getobcs( strict=False, verbose=False, **kwargs):
     # defaults:
 
     do_ob_jnorth, do_ob_jsouth, do_ob_ieast, do_ob_iwest = [True]*4
-
     if not ob_jnorth:
         ob_jnorth = np.ones(parent_mitgrid['XC'].shape[0],dtype=int)*nj_regional
     elif not any(ob_jnorth!=0):
         do_ob_jnorth = False
-
     if not ob_jsouth:
         ob_jsouth = np.ones(parent_mitgrid['XC'].shape[0],dtype=int)
     elif not any(ob_jsouth!=0):
         do_ob_jsouth = False
-
     if not ob_ieast:
         ob_ieast = np.ones(parent_mitgrid['XC'].shape[1],dtype=int)*ni_regional
     elif not any(ob_ieast!=0):
         do_ob_ieast = False
-
     if not ob_iwest:
         ob_iwest = np.ones(parent_mitgrid['XC'].shape[1],dtype=int)
     elif not any(ob_iwest!=0):
@@ -210,13 +206,10 @@ def getobcs( strict=False, verbose=False, **kwargs):
 
     if do_ob_jnorth:
         ob_jnorth = np.array([nj_regional+1+j if j<0 else j for j in ob_jnorth]) - 1
-
     if do_ob_jsouth:
         ob_jsouth = ob_jsouth - 1
-
     if do_ob_ieast:
         ob_ieast = np.array([ni_regional+1+i if i<0 else i for i in ob_ieast]) - 1
-
     if do_ob_iwest:
         ob_iwest = ob_iwest - 1
 
@@ -294,25 +287,31 @@ def getobcs( strict=False, verbose=False, **kwargs):
     print('ntimes/ndepths = {0}/{1}'.format(ntimes,ndepths))
 
     #
-    # put resulting controls into dictionary to help organize subsequent loops:
+    # put resulting controls into dictionary to help organize subsequent loops
+    # ('None's are data that will be filled in at loop level; included here only
+    # for clarity):
     #
 
     obs = { 'N': {
                 'do'        : do_ob_jnorth,
-                'partition' : (np.arange(len(ob_jnorth)),ob_jnorth),    # "fancy" indexing
-                'shape'     : (ni_regional,ndepths,ntimes)},
+                'partition' : (np.arange(len(ob_jnorth)),ob_jnorth),# "fancy" indexing
+                'shape'     : [ni_regional,None,ntimes],            # Nones will be ndepths
+                'ob_array'  : None},
             'S': {
                 'do'        : do_ob_jsouth,
                 'partition' : (np.arange(len(ob_jsouth)),ob_jsouth),
-                'shape'     : (ni_regional,ndepths,ntimes)},
+                'shape'     : [ni_regional,None,ntimes],
+                'ob_array'  : None},
             'E': {
                 'do'        : do_ob_ieast,
                 'partition' : (ob_ieast,np.arange(len(ob_ieast))),
-                'shape'     : (nj_regional,ndepths,ntimes)},
+                'shape'     : [nj_regional,None,ntimes],
+                'ob_array'  : None},
             'W': {
                 'do'        : do_ob_iwest,
                 'partition' : (ob_iwest,np.arange(len(ob_iwest))),
-                'shape'     : (nj_regional,ndepths,ntimes)},}
+                'shape'     : [nj_regional,None,ntimes],
+                'ob_array'  : None},}
 
     #
     # Apply interpolators to map from parent->regional, and partition solutions
@@ -320,29 +319,42 @@ def getobcs( strict=False, verbose=False, **kwargs):
     #
 
     # tracer cell-related responses:
-    responses = ['T','S']   # <-- 'Eta' to do: special logic to skip depths
+    responses = ['T','S','Eta']
     for response in responses:
         if glob.glob(os.path.join(parent_resultsdir,response+'.*.data')):
             if verbose:
                 print("computing obcs for '{0}'...".format(response))
-            # if results exist in database, allocate boundary matrices for this
-            # particular response:
-            for ob,obvals in obs.items():
-                if obvals['do']:
-                    obs[ob]['ob_array'] = np.zeros(obvals['shape'])
-            # for this reponse, and for selected boundaries, assemble boundary
-            # matrices for all depths, times
+            # if results exist in database, then for this reponse, and for
+            # selected boundaries, assemble boundary matrices for all depths,
+            # times:
             for time_idx,time in enumerate(times):
+                if time_idx==0:
+                    # allocate storage on first pass:
+                    # get ndepths from first instance:
+                    try:
+                        ndepths = mds.rdmds(os.path.join(
+                            parent_resultsdir,response),times[time_idx]).T.shape[2]
+                    except IndexError:
+                        ndepths = 1
+                    for ob in obs:
+                        if obs[ob]['do']:
+                            obs[ob]['shape'][1] = ndepths
+                            obs[ob]['ob_array'] = np.zeros(obs[ob]['shape'])
                 # get parent results for this response, for this time...:
                 parent_results = mds.rdmds(os.path.join(parent_resultsdir,response),time).T
                 # for each depth...:
-                for depth_idx in range(parent_results.shape[2]):
+                for depth_idx in range(ndepths):
                     # ... interpolate to the regional grid...:
-                    regional_results = tracer_regridder(parent_results[:,:,depth_idx])
+                    try:
+                        regional_results = tracer_regridder(parent_results[:,:,depth_idx])
+                    except IndexError:
+                        # will be the case if only one depth:
+                        parent_results = np.expand_dims(parent_results,2)
+                        regional_results = tracer_regridder(parent_results[:,:,depth_idx])
                     # ... and insert the boundary partitions for the requested
                     # N, S, E, W boundary matrices for this depth, time:
-                    for ob,obvals in obs.items():
-                        if obvals['do']:
+                    for ob in obs:
+                        if obs[ob]['do']:
                             obs[ob]['ob_array'][:,depth_idx,time_idx] = \
                                 regional_results[obs[ob]['partition']]
                         if depth_idx==0 and time_idx==0:
