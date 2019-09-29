@@ -110,6 +110,7 @@ def getobcs( strict=False, verbose=False, **kwargs):
     ob_jsouth               = np.array(kwargs.get('OB_Jsouth'))
     ob_ieast                = np.array(kwargs.get('OB_Ieast'))
     ob_iwest                = np.array(kwargs.get('OB_Iwest'))
+    resultsdir              = kwargs.get('resultsdir')
 
     #
     # locate global (parent) grid:
@@ -214,6 +215,15 @@ def getobcs( strict=False, verbose=False, **kwargs):
         ob_iwest = ob_iwest - 1
 
     #
+    # output directory:
+    #
+
+    if not resultsdir:
+        resultsdir = parent_resultsdir.rstrip(os.sep)+'_obcs'
+    if not os.path.exists(resultsdir):
+        os.makedirs(resultsdir)
+
+    #
     # interpolators:
     #
 
@@ -227,7 +237,8 @@ def getobcs( strict=False, verbose=False, **kwargs):
     wgtfname_tracer = weightfilename(
         INTERP_METH, ds_tracer_parent, ds_tracer_regional, 'tracer', NETCDF_EXT)
     tracer_regridder = xe.Regridder( ds_tracer_parent, ds_tracer_regional,
-        INTERP_METH, filename=wgtfname_tracer, reuse_weights=True)
+        INTERP_METH, filename=os.path.join(resultsdir,wgtfname_tracer),
+        reuse_weights=True)
 
     # u, v point interplators - "regrid" both parent and region at 2x
     # resolution, use to extract tracer cell u,v midside nodes:
@@ -257,7 +268,7 @@ def getobcs( strict=False, verbose=False, **kwargs):
     wgtfname_U = weightfilename( INTERP_METH, ds_U_parent,
         ds_U_regional, 'U', NETCDF_EXT)
     U_regridder = xe.Regridder( ds_U_parent, ds_U_regional, INTERP_METH,
-        filename=wgtfname_U, reuse_weights=True)
+        filename=os.path.join(resultsdir,wgtfname_U), reuse_weights=True)
     # V-point interpolator:
     ds_V_parent = {
         'lon': parent_mitgrid_double['XG'][1::2,0::2],
@@ -268,7 +279,7 @@ def getobcs( strict=False, verbose=False, **kwargs):
     wgtfname_V = weightfilename( INTERP_METH, ds_V_parent,
         ds_V_regional, 'V', NETCDF_EXT)
     V_regridder = xe.Regridder( ds_V_parent, ds_V_regional, INTERP_METH,
-        filename=wgtfname_V, reuse_weights=True)
+        filename=os.path.join(resultsdir,wgtfname_V), reuse_weights=True)
 
     #
     # get time steps and number of depths from results database:
@@ -319,7 +330,7 @@ def getobcs( strict=False, verbose=False, **kwargs):
     #
 
     # tracer cell-related responses:
-    responses = ['T','S','Eta']
+    responses = ['T','S','Eta','W']
     for response in responses:
         if glob.glob(os.path.join(parent_resultsdir,response+'.*.data')):
             if verbose:
@@ -368,6 +379,14 @@ def getobcs( strict=False, verbose=False, **kwargs):
                             elif 'W'==ob:
                                 print(regional_results[0,:])
                             print(obs[ob]['ob_array'][:,depth_idx,time_idx])
+            # write accumulated results:
+            for ob in obs:
+                if obs[ob]['do']:
+                    outarray = np.asfortranarray(obs[ob]['ob_array'],dtype='>f8')
+                    filename = 'OB'+ob+response.lower() # plus an optional name?
+                    fd = open(os.path.join(resultsdir,filename),'wb')
+                    outarray.tofile(fd)
+                    fd.close
 
 
     # failed experiment: keep, for now. attempted to interpolate just to string
@@ -393,13 +412,10 @@ def getobcs( strict=False, verbose=False, **kwargs):
     #    tracer_region_west_regridder = xe.Regridder(
     #        ds_tracer_parent, ds_tracer_region_west, 'bilinear')
 
-#T, S, U, V, Eta, W, UICE, VICE
-#
+#U, V, UICE, VICE
 # runtime parameters:
 #OB[N/S/E/W][t/s/u/v]File
 #if present,
-#OB[N/S/E/W]etaFile
-#OB[N/S/E/W]wFile
 #OB[N/S/E/W][a,h,sl,sn,uice,vice]
 
 
