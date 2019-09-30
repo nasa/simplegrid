@@ -1,4 +1,6 @@
+#!/usr/bin/env python
 
+import argparse
 import glob
 import numpy as np
 import os.path
@@ -12,6 +14,53 @@ from . import regrid
 
 INTERP_METH = 'bilinear'
 NETCDF_EXT = '.nc'
+
+
+def create_parser():
+    """Set up the list of arguments to be provided to getobcs.
+    """
+    parser = argparse.ArgumentParser(
+        description="""
+            Generate open boundary condition matrices for use with MITgcm's OBCS
+            package.""")
+    parser.add_argument('--parent_mitgridfile', required=True, help="""
+        mitgrid (path and) file name of global simulation grid data""")
+    parser.add_argument('--ni_parent', type=int, required=True, help="""
+        number of tracer points in the parent model grid 'x' direction""")
+    parser.add_argument('--nj_parent', type=int, required=True, help="""
+        number of tracer points in the parent model grid 'y' direction""")
+    parser.add_argument('--regional_mitgridfile', required=True, help="""
+        mitgrid (path and) filename of regional grid data""")
+    parser.add_argument('--ni_regional', type=int, required=True, help="""
+        number of tracer points in the regional model grid 'x' direction""")
+    parser.add_argument('--nj_regional', type=int, required=True, help="""
+        number of tracer points in the regional model grid 'y' direction""")
+    parser.add_argument('--parent_resultsdir', required=True, help="""
+        MITgcm parent grid results directory""")
+    parser.add_argument('--OB_Jnorth', type=int, help="""
+        North boundary vector of length ni_regional containing boundary tracer
+        cell j indices per MITgcm OBCS package conventions.  Boundaries are
+        ignored for any index vector that is identically zero, and defaults to
+        edge tracer cell indices if not provided. Negative indices supported.""")
+    parser.add_argument('--OB_Jsouth', type=int, help="""
+        South boundary vector of length ni_regional containing boundary tracer
+        cell j indices (See --OB_JNorth comments)""")
+    parser.add_argument('--OB_Ieast', type=int, help="""
+        East boundary vector of length nj_regional containing boundary tracer
+        cell i indices (See --OB_JNorth comments)""")
+    parser.add_argument('--OB_Iwest', type=int, help="""
+        West boundary vector of length nj_regional containing boundary tracer
+        cell i indices (See --OB_JNorth comments)""")
+    parser.add_argument('--resultsdir', required=True, help="""
+        directory in which to store resulting open boundary condition matrices.
+        Defaults to parent_resultsdir+'_obcs' if not provided.""")
+    parser.add_argument('-s','--strict',action='store_true', help="""
+        raise error if nonzero terms found in any of the standard mitgrid matrix
+        row/colum padding dimensions (e.g., last row and column of XG, YG,
+        etc.)""")
+    parser.add_argument('-v','--verbose',action='store_true',help="""
+        verbose output""")
+    return parser
 
 
 def weightfilename( interp_meth, grid_in, grid_out, response_type, netcdf_ext):
@@ -67,14 +116,14 @@ def getobcs( strict=False, verbose=False, **kwargs):
             mitgridfilefields module.
         regional_mitgridfile (str, required if no regional_mitgrid_matrices):
             (path and) filename of regional grid data.
-        regional_mitgrid_matrices (dict, required if no regional_mitgridfile):
-            regional grid data as name/value (numpy 2-d array) pairs
-            corresponding to matrix name and ordering convention listed in
-            mitgridfilefields module.
         ni_regional (int, required if regional_mitgridfile): number of tracer
             points in the regional model grid 'x' direction.
         nj_regional (int, required if regional_mitgridfile): number of tracer
             points in the regional model grid 'y' direction.
+        regional_mitgrid_matrices (dict, required if no regional_mitgridfile):
+            regional grid data as name/value (numpy 2-d array) pairs
+            corresponding to matrix name and ordering convention listed in
+            mitgridfilefields module.
         parent_resultsdir (str, required): MITgcm parent grid results directory
             (e.g., './run').
         OB_Jnorth, OB_Jsouth, OB_Ieast, OB_Iwest (ones-based int vectors):
@@ -86,9 +135,10 @@ def getobcs( strict=False, verbose=False, **kwargs):
             condition arrays.  Defaults to parent_resultsdir+'_obcs'.
 
     Returns:
+        Open-boundary matrices written to resultsdir.
 
     Raises:
-        ValueError: If missing parent or regional grid input,
+        ValueError: If missing parent or regional grid input.
 
     Note:
         Resulting data are intended for use with MITgcm data.pkg option,
@@ -289,13 +339,13 @@ def getobcs( strict=False, verbose=False, **kwargs):
     re_time = re.compile('\d+')
     times = sorted( [int(re_time.findall(os.path.basename(f))[0])
         for f in glob.glob(os.path.join(parent_resultsdir,'T.*.data'))])
-    print('times = {0}'.format(times))
     ntimes = len(times)
     # open up a temperature file, get depths from matrix size:
     T1 = mds.rdmds(os.path.join(parent_resultsdir,'T'),times[0])
     ndepths = T1.shape[0]
-
-    print('ntimes/ndepths = {0}/{1}'.format(ntimes,ndepths))
+    if verbose:
+        print('Computing boundary matrices for {0} depths and {1} times...'.
+            format(ndepths,ntimes))
 
     #
     # put resulting controls into dictionary to help organize subsequent loops
@@ -304,34 +354,44 @@ def getobcs( strict=False, verbose=False, **kwargs):
     #
 
     obs = { 'N': {
-                'do'        : do_ob_jnorth,
-                'partition' : (np.arange(len(ob_jnorth)),ob_jnorth),# "fancy" indexing
-                'shape'     : [ni_regional,None,ntimes],            # Nones will be ndepths
-                'ob_array'  : None},
+                'do'                : do_ob_jnorth,
+                'tracer_partition'  : (np.arange(len(ob_jnorth)),ob_jnorth),    # "fancy" indexing
+                'u_partition'       : (np.arange(len(ob_jnorth)),ob_jnorth),    # ...
+                'v_partition'       : (np.arange(len(ob_jnorth)),ob_jnorth),    # ...
+                'shape'             : [ni_regional,None,ntimes],                # Nones will be ndepths
+                'ob_array'          : None},                                    # temp storage
             'S': {
-                'do'        : do_ob_jsouth,
-                'partition' : (np.arange(len(ob_jsouth)),ob_jsouth),
-                'shape'     : [ni_regional,None,ntimes],
-                'ob_array'  : None},
+                'do'                : do_ob_jsouth,
+                'tracer_partition'  : (np.arange(len(ob_jsouth)),ob_jsouth  ),
+                'u_partition'       : (np.arange(len(ob_jsouth)),ob_jsouth  ),
+                'v_partition'       : (np.arange(len(ob_jsouth)),ob_jsouth+1),
+                'shape'             : [ni_regional,None,ntimes],
+                'ob_array'          : None},
             'E': {
-                'do'        : do_ob_ieast,
-                'partition' : (ob_ieast,np.arange(len(ob_ieast))),
-                'shape'     : [nj_regional,None,ntimes],
-                'ob_array'  : None},
+                'do'                : do_ob_ieast,
+                'tracer_partition'  : (ob_ieast,np.arange(len(ob_ieast))),
+                'u_partition'       : (ob_ieast,np.arange(len(ob_ieast))),
+                'v_partition'       : (ob_ieast,np.arange(len(ob_ieast))),
+                'shape'             : [nj_regional,None,ntimes],
+                'ob_array'          : None},
             'W': {
-                'do'        : do_ob_iwest,
-                'partition' : (ob_iwest,np.arange(len(ob_iwest))),
-                'shape'     : [nj_regional,None,ntimes],
-                'ob_array'  : None},}
+                'do'                : do_ob_iwest,
+                'tracer_partition'  : (ob_iwest  ,np.arange(len(ob_iwest))),
+                'u_partition'       : (ob_iwest+1,np.arange(len(ob_iwest))),
+                'v_partition'       : (ob_iwest  ,np.arange(len(ob_iwest))),
+                'shape'             : [nj_regional,None,ntimes],
+                'ob_array'          : None},}
 
     #
     # Apply interpolators to map from parent->regional, and partition solutions
     # accordingly:
     #
 
-    # tracer cell-related responses:
-    responses = ['T','S','Eta','W']
-    for response in responses:
+    tracer_responses = ['T','S','Eta','W']
+    u_responses      = ['U','UICE']
+    v_responses      = ['V','VICE']
+
+    for response in tracer_responses+u_responses+v_responses:
         if glob.glob(os.path.join(parent_resultsdir,response+'.*.data')):
             if verbose:
                 print("computing obcs for '{0}'...".format(response))
@@ -356,19 +416,53 @@ def getobcs( strict=False, verbose=False, **kwargs):
                 # for each depth...:
                 for depth_idx in range(ndepths):
                     # ... interpolate to the regional grid...:
-                    try:
-                        regional_results = tracer_regridder(parent_results[:,:,depth_idx])
-                    except IndexError:
-                        # will be the case if only one depth:
-                        parent_results = np.expand_dims(parent_results,2)
-                        regional_results = tracer_regridder(parent_results[:,:,depth_idx])
+                    if response in tracer_responses:
+                        try:
+                            parent_results_at_this_depth = parent_results[:,:,depth_idx]
+                        except IndexError:
+                            parent_results_at_this_depth = parent_results[:,:]
+                        regional_results = tracer_regridder(parent_results_at_this_depth)
+                    elif response in u_responses:
+                        try:
+                            parent_results_at_this_depth = parent_results[:,:,depth_idx]
+                        except IndexError:
+                            parent_results_at_this_depth = parent_results[:,:]
+                        # handle possible MITgcm solution idiosyncrasies:
+                        if U_regridder.shape_in != parent_results_at_this_depth.shape:
+                            tmparray = np.zeros(U_regridder.shape_in)
+                            tmparray[0:parent_results_at_this_depth.shape[0],
+                                0:parent_results_at_this_depth.shape[1]] = \
+                                parent_results_at_this_depth
+                            parent_results_at_this_depth = tmparray
+                        regional_results = U_regridder(parent_results_at_this_depth)
+                    elif response in v_responses:
+                        try:
+                            parent_results_at_this_depth = parent_results[:,:,depth_idx]
+                        except IndexError:
+                            parent_results_at_this_depth = parent_results[:,:]
+                        # handle possible MITgcm solution idiosyncrasies:
+                        if V_regridder.shape_in != parent_results_at_this_depth.shape:
+                            tmparray = np.zeros(V_regridder.shape_in)
+                            tmparray[0:parent_results_at_this_depth.shape[0],
+                                0:parent_results_at_this_depth.shape[1]] = \
+                                parent_results_at_this_depth
+                            parent_results_at_this_depth = tmparray
+                        regional_results = V_regridder(parent_results_at_this_depth)
                     # ... and insert the boundary partitions for the requested
                     # N, S, E, W boundary matrices for this depth, time:
                     for ob in obs:
                         if obs[ob]['do']:
-                            obs[ob]['ob_array'][:,depth_idx,time_idx] = \
-                                regional_results[obs[ob]['partition']]
-                        if depth_idx==0 and time_idx==0:
+                            if response in tracer_responses:
+                                obs[ob]['ob_array'][:,depth_idx,time_idx] = \
+                                    regional_results[obs[ob]['tracer_partition']]
+                            elif response in u_responses:
+                                obs[ob]['ob_array'][:,depth_idx,time_idx] = \
+                                    regional_results[obs[ob]['u_partition']]
+                            elif response in v_responses:
+                                obs[ob]['ob_array'][:,depth_idx,time_idx] = \
+                                    regional_results[obs[ob]['v_partition']]
+                        extra_dbg = False
+                        if extra_dbg and depth_idx==0 and time_idx==0:
                             print('{0} compare:'.format(ob))
                             if 'N'==ob:
                                 print(regional_results[:,-1])
@@ -379,7 +473,7 @@ def getobcs( strict=False, verbose=False, **kwargs):
                             elif 'W'==ob:
                                 print(regional_results[0,:])
                             print(obs[ob]['ob_array'][:,depth_idx,time_idx])
-            # write accumulated results:
+            # write accumulated time, depth results:
             for ob in obs:
                 if obs[ob]['do']:
                     outarray = np.asfortranarray(obs[ob]['ob_array'],dtype='>f8')
@@ -389,33 +483,27 @@ def getobcs( strict=False, verbose=False, **kwargs):
                     fd.close
 
 
-    # failed experiment: keep, for now. attempted to interpolate just to string
-    # of points as opposed to a grid.
-    #if ob_iwest.any():
-    #    # tracer cell interpolator:
-    #    tracer_region_west_xc = np.zeros(ob_iwest.shape)
-    #    tracer_region_west_yc = np.zeros(ob_iwest.shape)
-    #    it = np.nditer(ob_iwest,flags=['multi_index'])
-    #    while not it.finished:
-    #        row_idx = it[0] # ones-based, per MITgcm conventions
-    #        col_idx = it.multi_index[0]
-    #        if row_idx>0:
-    #            tracer_region_west_xc[col_idx] = \
-    #                regional_mitgrid['XC'][row_idx-1,col_idx]
-    #            tracer_region_west_yc[col_idx] = \
-    #                regional_mitgrid['YC'][row_idx-1,col_idx]
-    #        it.iternext()
-    #    ds_tracer_region_west = {
-    #        'lon': tracer_region_west_xc, 'lat': tracer_region_west_yc}
-    #    print('tracer_region_west_xc.shape = {0}'.format(tracer_region_west_xc.shape))
-    #    print('tracer_region_west_yc.shape = {0}'.format(tracer_region_west_yc.shape))
-    #    tracer_region_west_regridder = xe.Regridder(
-    #        ds_tracer_parent, ds_tracer_region_west, 'bilinear')
+def main():
+    """Command-line entry point."""
 
-#U, V, UICE, VICE
-# runtime parameters:
-#OB[N/S/E/W][t/s/u/v]File
-#if present,
-#OB[N/S/E/W][a,h,sl,sn,uice,vice]
+    parser = create_parser()
+    args = parser.parse_args()
+    getobcs(
+        args.strict,
+        args.verbose,
+        parent_mitgridfile  = args.parent_mitgridfile,
+        ni_parent           = args.ni_parent,
+        nj_parent           = args.nj_parent,
+        regional_mitgridfile= args.regional_mitgridfile,
+        ni_regional         = args.ni_regional,
+        nj_regional         = args.nj_regional,
+        parent_resultsdir   = args.parent_resultsdir,
+        OB_Jnorth           = args.OB_Jnorth,
+        OB_Jsouth           = args.OB_Jsouth,
+        OB_Ieast            = args.OB_Ieast,
+        OB_Iwest            = args.OB_Iwest,
+        resultsdir          = args.resultsdir)
 
+if __name__ == '__main__':
+    main()
 

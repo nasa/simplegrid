@@ -25,6 +25,7 @@ setup(
     entry_points = {
         'console_scripts': [
             'sgaddfringe    = simplegrid.addfringe:main',
+            'sggetobcs      = simplegrid.getobcs:main',
             'sgmkgrid       = simplegrid.mkgrid:main',
             'sgregrid       = simplegrid.regrid:main',
             'sgstitch       = simplegrid.stitch:main',
