@@ -37,9 +37,9 @@ Requirements
 simplegrid is compatible with Python 3.5+, with numpy, pyproj, and xESMF package
 dependencies.
 
-Should xESMF installation be necessary, the simplest approach is to install it
-in an `anaconda <https://anaconda.org/>`_ distribution using any one of several
-procedures outlined in the `xESMF installation documentation
+If xESMF is not already installed, the simplest approach is via an `anaconda
+<https://anaconda.org/>`_ distribution using any one of several procedures
+outlined in the `xESMF installation documentation
 <https://xesmf.readthedocs.io/en/latest/installation.html>`_.  simplegrid may
 then be installed within the base distribution or in a virtual environment that
 has been granted access to the global site packages.
