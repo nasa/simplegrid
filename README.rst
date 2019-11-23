@@ -252,5 +252,38 @@ from the command line::
         --outfile stitch_AB_NS_2x4.mitgrid \
         --strict
 
+Computing open boundary conditions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Global, or parent, grid simulation results can be interpolated to the boundaries
+of regional grids for use in connection with MITgcm's OBCS package for regional
+modeling. The "getobcs" capability in simplegrid supports the generalized
+methods for describing open boundaries described in MITgcm's `OBC physical
+parameterization package
+<https://mitgcm.readthedocs.io/en/latest/phys_pkgs/obcs.html>`_, and
+automatically generates boundary matrices for all results, depths, and times
+found in the global simulation results directory.
+
+The following computes open boundary conditions for the (default) outer tracer
+cell edges of a 20x16 regional grid using MITgcm's lab_sea verification model
+results, storing the N, S, E, and W sets of boundary matrices in the directory
+./run_obcs:
+
+from Python::
+
+    # regional grid (at 2x global grid resolution):
+    (mg_region, ni_region, nj_region) = sg.regrid.regrid(
+        mitgrid_matrices=parent_mitgrid,
+        lon1=290., lat1=70., lon2=310., lat2=54.,
+        lon_subscale=2, lat_subscale=2)
+
+    # interpolate global simulation results to regional boundaries:
+    sg.getobcs.getobcs(
+        parent_mitgrid_matrices=parent_mitgrid,
+        parent_resultsdir = './run',
+        regional_mitgrid_matrices = mg_region,
+        verbose=True)
+
+
 .. inclusion-marker-end-of-examples
 

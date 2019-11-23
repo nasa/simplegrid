@@ -237,19 +237,19 @@ def getobcs( strict=False, verbose=False, **kwargs):
 
     do_ob_jnorth, do_ob_jsouth, do_ob_ieast, do_ob_iwest = [True]*4
     if not ob_jnorth:
-        ob_jnorth = np.ones(parent_mitgrid['XC'].shape[0],dtype=int)*nj_regional
+        ob_jnorth = np.ones(ni_regional,dtype=int)*nj_regional
     elif not any(ob_jnorth!=0):
         do_ob_jnorth = False
     if not ob_jsouth:
-        ob_jsouth = np.ones(parent_mitgrid['XC'].shape[0],dtype=int)
+        ob_jsouth = np.ones(ni_regional,dtype=int)
     elif not any(ob_jsouth!=0):
         do_ob_jsouth = False
     if not ob_ieast:
-        ob_ieast = np.ones(parent_mitgrid['XC'].shape[1],dtype=int)*ni_regional
+        ob_ieast = np.ones(nj_regional,dtype=int)*ni_regional
     elif not any(ob_ieast!=0):
         do_ob_ieast = False
     if not ob_iwest:
-        ob_iwest = np.ones(parent_mitgrid['XC'].shape[1],dtype=int)
+        ob_iwest = np.ones(nj_regional,dtype=int)
     elif not any(ob_iwest!=0):
         do_ob_iwest = False
 
